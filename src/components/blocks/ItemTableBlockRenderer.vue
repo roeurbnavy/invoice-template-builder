@@ -668,12 +668,13 @@ function getCellVAlign(r, col) { return props.block.cellStyles?.[`${r}:${col.id}
 
 function getCellCustomStyles(r, col) {
     const rowStyle = props.block.rowStyles?.[r] ?? {}, cellStyle = props.block.cellStyles?.[`${r}:${col.id}`] ?? {};
+    const resolvedHeight = rowStyle.height ?? props.block.defaultRowHeight ?? undefined;
     return {
         backgroundColor: isCellSelected(r, col.id) ? 'rgba(0, 180, 216, 0.15)' : (cellStyle.bgColor ?? rowStyle.bgColor ?? getRowBgColor(r)),
         color: cellStyle.textColor ?? rowStyle.textColor ?? '#333',
         fontWeight: (cellStyle.bold ?? rowStyle.bold ?? col.bold ?? (col.id === 'total' || rowStyle.isSummary || rowStyle.isHeader)) ? 'bold' : 'normal',
         fontStyle: (cellStyle.italic ?? rowStyle.italic) ? 'italic' : 'normal',
-        height: rowStyle.height ? `${rowStyle.height}px` : undefined,
+        height: resolvedHeight ? `${resolvedHeight}px` : undefined,
         borderBottom: rowStyle.isSummary ? `3px double ${borderColor.value}` : undefined
     };
 }

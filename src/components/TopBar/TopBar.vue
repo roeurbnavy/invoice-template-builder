@@ -294,7 +294,11 @@ function handleResetToDefault() {
         <div class="topbar-sep" />
 
         <!-- Save to browser -->
-        <button class="btn btn-ghost" @click="handleSave">
+        <button
+            class="btn btn-ghost"
+            data-tooltip="Save template changes (Local Storage)"
+            @click="handleSave"
+        >
             <Save :size="13" />
             Save
         </button>

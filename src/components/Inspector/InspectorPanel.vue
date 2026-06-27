@@ -109,14 +109,13 @@ const visibleTabs = computed(() => {
             ].includes(type);
         }
         if (tab.id === "data") {
-            return type !== "signature_line";
+            return !["signature_line", "spacer", "divider", "cut_line", "page_break", "carbon_copy_label"].includes(type);
         }
         if (tab.id === "block") {
             return [
                 "item_table",
                 "shape",
                 "divider",
-                "spacer",
                 "bank_details",
                 "company_info",
                 "client_info",
@@ -124,7 +123,6 @@ const visibleTabs = computed(() => {
                 "watermark",
                 "checkboxes_row",
                 "barcode",
-                "carbon_copy_label",
                 "header_grid",
                 "container",
             ].includes(type);
@@ -280,6 +278,7 @@ const formatBlockName = (type) => {
         >
             <!-- Selected Block Header Info -->
             <div
+                class="inspector-selected-header"
                 style="
                     padding: 12px 14px;
                     border-bottom: 1px solid var(--color-panel-border);

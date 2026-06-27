@@ -549,17 +549,8 @@ select.inp option {
     display: flex;
     align-items: center;
     gap: 6px;
-    overflow-x: auto;
-    overflow-y: visible;
-    scrollbar-width: thin;
     height: 100%;
-}
-.topbar-scroll::-webkit-scrollbar {
-    height: 3px;
-}
-.topbar-scroll::-webkit-scrollbar-thumb {
-    background: var(--color-panel-border);
-    border-radius: 3px;
+    overflow: visible;
 }
 
 .topbar-logo {
@@ -671,6 +662,13 @@ select.inp option {
 
 [data-tooltip]:hover::after {
     opacity: 1;
+}
+
+/* Tooltips in topbar and inspector header show downwards */
+.topbar [data-tooltip]::after,
+.inspector-selected-header [data-tooltip]::after {
+    bottom: auto;
+    top: calc(100% + 8px);
 }
 
 /* ============================================================
@@ -885,5 +883,43 @@ select.inp option {
     /* Ensure all blocks and their contents are visible */
     .canvas-block {
         overflow: visible !important;
+    }
+
+    /* Print styling when Preview Modal is open */
+    body.preview-open .app-layout {
+        display: none !important;
+    }
+    body.preview-open .preview-overlay {
+        display: block !important;
+        position: static !important;
+        background: white !important;
+        width: auto !important;
+        height: auto !important;
+    }
+    body.preview-open .preview-header {
+        display: none !important;
+    }
+    body.preview-open .preview-body {
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: white !important;
+        overflow: visible !important;
+    }
+    body.preview-open .preview-scroll {
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+    }
+    body.preview-open .preview-paper {
+        margin: 0 auto !important;
+        box-shadow: none !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+    body.preview-open .preview-empty {
+        display: none !important;
     }
 }

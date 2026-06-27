@@ -754,6 +754,24 @@ function moveField(fromIndex, toIndex) {
     updateProp('fieldOrder', order);
     commitHistory();
 }
+
+// ── item_table helpers ──
+function autoBalanceWidths() {
+    const columns = getStoredColumns();
+    const visible = columns.filter(c => c.visible !== false && (c.widthUnit ?? '%') === '%');
+    if (visible.length === 0) return;
+    const share = Math.round((100 / visible.length) * 10) / 10;
+    visible.forEach(c => { c.width = share; });
+    updateProp('columns', columns);
+    commitHistory();
+}
+
+function addTableRow() {
+    const items = JSON.parse(JSON.stringify(props.block.items ?? []));
+    items.push({ no: items.length + 1, description: '', qty: '', unit_price: '', discount: '', tax: '', total: '' });
+    updateProp('items', items);
+    commitHistory();
+}
 </script>
 
 
@@ -1410,47 +1428,34 @@ function moveField(fromIndex, toIndex) {
         <div v-else-if="block.type === 'item_table'" class="field-group">
             <div class="field-label">Table Settings</div>
 
+            <!-- Row / Data settings -->
             <div class="field-row">
                 <div>
-                    <label
-                        style="
-                            font-size: 10px;
-                            color: var(--color-panel-muted);
-                            display: block;
-                            margin-bottom: 2px;
-                        "
-                        >Empty Rows</label
-                    >
-                    <input
-                        type="number"
-                        :value="block.emptyRows ?? 3"
-                        class="inp"
-                        min="0"
-                        max="20"
-                        @input="handleInput('emptyRows', $event)"
-                        @blur="commitHistory"
-                    />
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Empty Rows</label>
+                    <input type="number" :value="block.emptyRows ?? 3" class="inp" min="0" max="20" @input="handleInput('emptyRows', $event)" @blur="commitHistory" />
                 </div>
                 <div>
-                    <label
-                        style="
-                            font-size: 10px;
-                            color: var(--color-panel-muted);
-                            display: block;
-                            margin-bottom: 2px;
-                        "
-                        >Body Font Size</label
-                    >
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Default Row Height</label>
                     <div class="field-unit">
-                        <input
-                            type="number"
-                            :value="block.bodyFontSize ?? 12"
-                            class="inp"
-                            min="8"
-                            max="24"
-                            @input="handleInput('bodyFontSize', $event)"
-                            @blur="commitHistory"
-                        />
+                        <input type="number" :value="block.defaultRowHeight ?? 30" class="inp" min="16" max="120" @input="handleInput('defaultRowHeight', $event)" @blur="commitHistory" />
+                        <span class="field-unit-label">px</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Body font -->
+            <div class="field-row" style="margin-top: 8px;">
+                <div>
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Body Font</label>
+                    <select :value="block.fontFamily ?? 'inherit'" class="inp" @change="updateProp('fontFamily', $event.target.value); commitHistory();">
+                        <option value="inherit">Use Global Font</option>
+                        <option v-for="font in settingsStore.fonts" :key="font.value" :value="font.value">{{ font.name }}</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Body Font Size</label>
+                    <div class="field-unit">
+                        <input type="number" :value="block.bodyFontSize ?? 12" class="inp" min="8" max="24" @input="handleInput('bodyFontSize', $event)" @blur="commitHistory" />
                         <span class="field-unit-label">px</span>
                     </div>
                 </div>
@@ -1611,6 +1616,33 @@ function moveField(fromIndex, toIndex) {
                 </div>
             </div>
 
+            <!-- Alternating Row Colors -->
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px; margin-bottom: 4px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>Alternating Row Colors</span>
+                    <label class="toggle">
+                        <input type="checkbox" :checked="block.alternatingRows" @change="handleCheckbox('alternatingRows', $event)" />
+                        <span class="toggle-track" />
+                    </label>
+                </div>
+                <div v-if="block.alternatingRows" class="field-row" style="margin-top: 2px;">
+                    <div>
+                        <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Row 1 (Even)</label>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <input type="color" :value="block.row1Color ?? '#ffffff'" class="color-picker-input" @input="updateProp('row1Color', $event.target.value)" @change="commitHistory" />
+                            <input type="text" :value="block.row1Color ?? '#ffffff'" class="inp" @input="updateProp('row1Color', $event.target.value)" @blur="commitHistory" />
+                        </div>
+                    </div>
+                    <div>
+                        <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Row 2 (Odd)</label>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <input type="color" :value="block.row2Color ?? '#fafafa'" class="color-picker-input" @input="updateProp('row2Color', $event.target.value)" @change="commitHistory" />
+                            <input type="text" :value="block.row2Color ?? '#fafafa'" class="inp" @input="updateProp('row2Color', $event.target.value)" @blur="commitHistory" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Headers design -->
             <div class="divider" />
             <div class="field-label" style="margin-top: 8px">Header Styles</div>
@@ -1682,6 +1714,15 @@ function moveField(fromIndex, toIndex) {
                         />
                     </div>
                 </div>
+            </div>
+
+            <!-- Header Font Weight -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
+                <span>Header Bold</span>
+                <label class="toggle">
+                    <input type="checkbox" :checked="(block.headerFontWeight ?? 'bold') === 'bold'" @change="updateProp('headerFontWeight', $event.target.checked ? 'bold' : 'normal'); commitHistory();" />
+                    <span class="toggle-track" />
+                </label>
             </div>
 
             <!-- Header Alignment -->
@@ -1770,8 +1811,9 @@ function moveField(fromIndex, toIndex) {
 
             <!-- Column Configurator -->
             <div class="divider" />
-            <div class="field-label" style="margin-top: 8px">
-                Columns Visibility & Width
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px; margin-bottom: 4px;">
+                <div class="field-label" style="margin: 0;">Columns &amp; Width</div>
+                <button class="btn btn-ghost" style="font-size: 10px; padding: 3px 8px;" title="Distribute column widths equally" @click="autoBalanceWidths">⚖ Balance</button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 8px">
                 <div
@@ -2037,16 +2079,11 @@ function moveField(fromIndex, toIndex) {
                     </div>
                 </div>
 
-                <button
-                    class="btn btn-ghost"
-                    style="width: 100%; font-size: 11px; padding: 5px 0; margin-top: 4px"
-                    @click="addColumn"
-                >
+                <button class="btn btn-ghost" style="width: 100%; font-size: 11px; padding: 5px 0; margin-top: 4px" @click="addColumn">
                     + Add Column
                 </button>
             </div>
 
-            
         </div>
 
         <!-- ─── CHECKBOXES ROW ─── -->
@@ -2197,11 +2234,36 @@ function moveField(fromIndex, toIndex) {
 
         <!-- ─── SPACER ─── -->
         <div v-else-if="block.type === 'spacer'" class="field-group">
-            <div class="field-label">Spacer</div>
-            <p style="font-size:11px;color:var(--color-panel-muted);margin:0">
-                Resize the spacer block by dragging its handles on the canvas.
-                Use the Layout tab to set exact height.
-            </p>
+            <div class="field-label">Spacer Settings</div>
+            <div class="field-row">
+                <div>
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Height</label>
+                    <div class="field-unit">
+                        <input
+                            type="number"
+                            :value="block.height ?? 20"
+                            class="inp"
+                            min="5"
+                            max="600"
+                            @input="handleInput('height', $event)"
+                            @blur="commitHistory"
+                        />
+                        <span class="field-unit-label">px</span>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 10px;">
+                <input
+                    type="range"
+                    :value="block.height ?? 20"
+                    min="5"
+                    max="300"
+                    step="5"
+                    style="width: 100%; accent-color: var(--color-accent, #00b4d8); cursor: pointer;"
+                    @input="handleInput('height', $event)"
+                    @change="commitHistory"
+                />
+            </div>
         </div>
 
     </div>

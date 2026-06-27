@@ -123,18 +123,42 @@ function getRenderer(type) {
     return RENDERERS[type] ?? GenericBlockRenderer;
 }
 
+const printCopies = ref(1);
+
+function getPageBlocks(pageIdx) {
+    return previewBlocks.value.map(block => {
+        if (block.type === 'carbon_copy_label') {
+            const modified = { ...block };
+            if (pageIdx === 1) {
+                modified.content = block.content || 'ORIGINAL';
+            } else if (pageIdx === 2) {
+                modified.content = 'DUPLICATE';
+            } else if (pageIdx === 3) {
+                modified.content = 'TRIPLICATE';
+            }
+            return modified;
+        }
+        return block;
+    });
+}
+
 watch(() => canvasStore.showPreview, async (val) => {
-    if (!val) return;
-    previewModeBackup = canvasStore.previewMode;
-    canvasStore.previewMode = true;
-    await nextTick();
-    visible.value = true;
+    if (val) {
+        previewModeBackup = canvasStore.previewMode;
+        canvasStore.previewMode = true;
+        document.body.classList.add("preview-open");
+        await nextTick();
+        visible.value = true;
+    } else {
+        document.body.classList.remove("preview-open");
+    }
 });
 
 function close() {
     canvasStore.previewMode = previewModeBackup;
     canvasStore.showPreview = false;
     visible.value = false;
+    document.body.classList.remove("preview-open");
 }
 
 function onKeydown(e) {
@@ -164,6 +188,14 @@ onUnmounted(() => {
                     </span>
                 </div>
                 <div class="preview-header-right">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-right: 12px;">
+                        <span style="font-size: 11px; color: rgba(255, 255, 255, 0.6);">Print Copies:</span>
+                        <select v-model="printCopies" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 4px 8px; font-size: 11px; color: white; outline: none; cursor: pointer;">
+                            <option :value="1">1 Copy (Original)</option>
+                            <option :value="2">2 Copies (Original &amp; Duplicate)</option>
+                            <option :value="3">3 Copies (Original, Duplicate &amp; Triplicate)</option>
+                        </select>
+                    </div>
                     <button class="preview-print-btn" @click="window.print()">
                         Print
                     </button>
@@ -174,10 +206,15 @@ onUnmounted(() => {
             </div>
 
             <div class="preview-body">
-                <div class="preview-scroll">
-                    <div :style="paperStyle" class="preview-paper">
+                <div class="preview-scroll" style="display: flex; flex-direction: column; gap: 30px;">
+                    <div
+                        v-for="pageIdx in printCopies"
+                        :key="pageIdx"
+                        :style="paperStyle"
+                        class="preview-paper"
+                    >
                         <div
-                            v-for="block in previewBlocks"
+                            v-for="block in getPageBlocks(pageIdx)"
                             :key="block.id"
                             :style="getBlockStyle(block)"
                         >

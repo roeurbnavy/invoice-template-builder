@@ -7,10 +7,9 @@ const props = defineProps({ block: { type: Object, required: true } })
     <div
       :style="{
         width: '100%',
-        height: `${block.lineWidth ?? 1}px`,
-        background: block.lineColor ?? '#cccccc',
-        borderTop: block.lineStyle === 'dashed' ? `${block.lineWidth ?? 1}px dashed ${block.lineColor ?? '#cccccc'}` : undefined,
-        borderTopStyle: block.lineStyle ?? 'solid',
+        height: (!block.lineStyle || block.lineStyle === 'solid') ? `${block.lineWidth ?? 1}px` : '0px',
+        backgroundColor: (!block.lineStyle || block.lineStyle === 'solid') ? (block.lineColor ?? '#cccccc') : 'transparent',
+        borderTop: (block.lineStyle && block.lineStyle !== 'solid') ? `${block.lineWidth ?? 1}px ${block.lineStyle} ${block.lineColor ?? '#cccccc'}` : 'none'
       }"
     />
   </div>

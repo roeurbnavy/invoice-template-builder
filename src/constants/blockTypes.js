@@ -82,13 +82,6 @@ export const BLOCK_CATEGORIES = [
     blocks: ["text", "image", "divider", "spacer", "checkboxes_row", "field_row"],
   },
   {
-    id: "layout",
-    label: "Layout",
-    icon: "Layout",
-    blocks: ["container", "table"],
-  },
-
-  {
     id: "document",
     label: "Document",
     icon: "FileText",
