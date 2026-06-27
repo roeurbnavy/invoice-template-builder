@@ -1824,10 +1824,10 @@ function addTableRow() {
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '6px',
-                        background: dragColId === col.id ? 'rgba(0,180,216,0.12)' : 'rgba(0,0,0,0.15)',
+                        background: dragColId === col.id ? 'var(--color-accent-dim)' : 'var(--color-card-bg)',
                         padding: '6px 8px',
                         borderRadius: '6px',
-                        border: '1px solid ' + (dragColId === col.id ? 'var(--color-accent,rgba(0,180,216,0.5))' : 'var(--color-panel-border)'),
+                        border: '1px solid ' + (dragColId === col.id ? 'var(--color-accent)' : 'var(--color-panel-border)'),
                         cursor: dragEnabledColId === col.id ? 'grabbing' : 'grab',
                         transition: 'background 0.15s, border-color 0.15s',
                     }"
@@ -1993,7 +1993,7 @@ function addTableRow() {
                                 <span v-if="col.subFields?.length" style="font-size:8px;color:var(--color-accent);margin-left:auto;cursor:pointer" @click.stop="clearSubFields(col.id)">Clear</span>
                             </div>
                             <div v-if="col.subFieldsOpen" style="display:flex;flex-direction:column;gap:4px;margin-top:4px">
-                                <div v-for="(sub, si) in (col.subFields || [])" :key="si" style="display:flex;flex-direction:column;gap:3px;background:rgba(0,0,0,0.1);padding:4px 5px;border-radius:4px">
+                                <div v-for="(sub, si) in (col.subFields || [])" :key="si" style="display:flex;flex-direction:column;gap:3px;background:var(--color-workspace);padding:4px 5px;border-radius:4px">
                                     <div style="display:flex;align-items:center;gap:4px">
                                         <button
                                             style="font-size:9px;padding:1px 3px;border:1px solid var(--color-panel-border);border-radius:3px;background:transparent;color:var(--color-panel-muted);cursor:pointer;width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0"
@@ -2097,7 +2097,7 @@ function addTableRow() {
                         display: flex;
                         align-items: center;
                         gap: 6px;
-                        background: rgba(0,0,0,0.15);
+                        background: var(--color-card-bg);
                         padding: 6px 8px;
                         border-radius: 6px;
                         border: 1px solid var(--color-panel-border);
@@ -2307,7 +2307,7 @@ function addTableRow() {
     height: 22px;
     font-size: 11px;
     line-height: 1;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--color-card-bg, rgba(255, 255, 255, 0.05));
     border: 1px solid var(--color-panel-border);
     border-radius: 4px;
     color: var(--color-panel-muted);
@@ -2316,12 +2316,12 @@ function addTableRow() {
     padding: 0;
 }
 .align-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: var(--color-panel-fg);
+    background: var(--color-panel-hover);
+    color: var(--color-panel-text);
 }
 .align-btn.active {
-    background: var(--color-panel-primary);
-    border-color: var(--color-panel-primary);
-    color: #fff;
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-workspace-secondary, #ffffff);
 }
 </style>

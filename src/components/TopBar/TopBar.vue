@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick } from "vue";
+import { ref, nextTick, onMounted } from "vue";
 import { useCanvasStore } from "../../stores/canvas.js";
 import { useSettingsStore } from "../../stores/settings.js";
 import { useTemplateStore } from "../../stores/template.js";
@@ -24,6 +24,8 @@ import {
     Eye,
     EyeOff,
     Grid3x3,
+    Sun,
+    Moon,
 } from "@lucide/vue";
 
 import ConfirmModal from "../common/ConfirmModal.vue";
@@ -195,9 +197,29 @@ function handleResetToDefault() {
     );
 }
 
+const isLightTheme = ref(false);
 
+onMounted(() => {
+    const saved = localStorage.getItem("theme");
+    if (saved === "light") {
+        isLightTheme.value = true;
+        document.body.classList.add("light");
+    } else {
+        isLightTheme.value = false;
+        document.body.classList.remove("light");
+    }
+});
 
-
+function toggleTheme() {
+    isLightTheme.value = !isLightTheme.value;
+    if (isLightTheme.value) {
+        document.body.classList.add("light");
+        localStorage.setItem("theme", "light");
+    } else {
+        document.body.classList.remove("light");
+        localStorage.setItem("theme", "dark");
+    }
+}
 </script>
 
 <template>
@@ -353,6 +375,17 @@ function handleResetToDefault() {
         >
             <Printer :size="13" />
             Print
+        </button>
+
+        <div class="topbar-sep" />
+
+        <!-- Theme Toggle -->
+        <button
+            class="btn btn-ghost btn-icon"
+            :data-tooltip="isLightTheme ? 'Switch to Dark Mode' : 'Switch to Light Mode'"
+            @click="toggleTheme"
+        >
+            <component :is="isLightTheme ? Moon : Sun" :size="13" />
         </button>
 
     </div></header>

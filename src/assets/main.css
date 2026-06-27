@@ -16,6 +16,9 @@
     --color-panel-muted: #8892a4;
     --color-panel-hover: #1a2d4f;
     --color-panel-active: #1e3a60;
+    --color-panel-hover-text: #ffffff;
+    --color-input-bg: rgba(0, 0, 0, 0.25);
+    --color-card-bg: rgba(0, 0, 0, 0.15);
 
     /* Accent palette */
     --color-accent: #00b4d8;
@@ -165,7 +168,7 @@ body,
 }
 .btn-ghost:hover {
     background: var(--color-panel-hover);
-    color: #ffffff;
+    color: var(--color-panel-hover-text);
 }
 .btn-ghost.active {
     background: var(--color-accent-dim);
@@ -198,7 +201,7 @@ body,
 }
 .btn-panel:hover {
     background: var(--color-panel-active);
-    color: #ffffff;
+    color: var(--color-panel-hover-text);
 }
 
 /* ============================================================
@@ -207,7 +210,7 @@ body,
 .inp {
     width: 100%;
     padding: 5px 8px;
-    background: rgba(0, 0, 0, 0.25);
+    background: var(--color-input-bg);
     border: 1px solid var(--color-panel-border);
     border-radius: 5px;
     color: var(--color-panel-text);
@@ -356,7 +359,7 @@ select.inp option {
 .field-unit {
     display: flex;
     align-items: center;
-    background: rgba(0, 0, 0, 0.25);
+    background: var(--color-input-bg);
     border: 1px solid var(--color-panel-border);
     border-radius: 5px;
     overflow: hidden;
@@ -372,7 +375,7 @@ select.inp option {
     padding: 0 7px;
     font-size: 10px;
     color: var(--color-panel-muted);
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--color-card-bg);
     height: 100%;
     display: flex;
     align-items: center;
@@ -572,7 +575,7 @@ select.inp option {
 }
 
 .topbar-select {
-    background: rgba(0, 0, 0, 0.25);
+    background: var(--color-input-bg);
     border: 1px solid var(--color-panel-border);
     border-radius: 6px;
     color: var(--color-panel-text);
@@ -923,3 +926,56 @@ select.inp option {
         display: none !important;
     }
 }
+
+/* ============================================================
+   Light Mode Theme
+   ============================================================ */
+body.light {
+    --color-workspace: #f1f5f9;
+    --color-workspace-secondary: #ffffff;
+    --color-panel: #ffffff;
+    --color-panel-border: #e2e8f0;
+    --color-panel-text: #0f172a;
+    --color-panel-muted: #64748b;
+    --color-panel-hover: #f8fafc;
+    --color-panel-active: #f1f5f9;
+    --color-accent: #0284c7;
+    --color-accent-hover: #0369a1;
+    --color-accent-dim: rgba(2, 132, 199, 0.08);
+    --color-panel-hover-text: #0f172a;
+    --color-input-bg: #f8fafc;
+    --color-card-bg: #f1f5f9;
+
+    /* Subtle shadows for light mode */
+    --shadow-paper: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    --shadow-panel: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    --shadow-dropdown: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+}
+
+/* Light Mode Preview Modal Customizations */
+body.light .preview-overlay {
+    background: #cbd5e1;
+}
+body.light .preview-header {
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+}
+body.light .preview-title {
+    color: #0f172a;
+}
+body.light .preview-close-btn {
+    color: #334155;
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+body.light .preview-close-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+body.light .preview-body {
+    background: #f1f5f9;
+}
+body.light .preview-info {
+    color: #64748b;
+}
+
