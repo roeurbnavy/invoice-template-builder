@@ -1,3 +1,4 @@
+import "./assets/main.css";
 import InvoiceBuilder from "./App.vue";
 import InvoiceRenderer from "./components/common/InvoiceRenderer.vue";
 import { resolveBlockBinding, getFieldLabel } from "./utils/variableResolver.js";
