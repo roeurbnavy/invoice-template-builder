@@ -3,9 +3,7 @@ import { ref, computed } from "vue";
 import { useBlockStore } from "../../../stores/blocks.js";
 import { useHistoryStore } from "../../../stores/history.js";
 import { useSettingsStore } from "../../../stores/settings.js";
-import { getSchemaFields, getSchemaGroups } from "../../../constants/documentSchemas.js";
 import { resolveBlockBinding, getFieldLabel, getNestedValue } from "../../../utils/variableResolver.js";
-import { SAMPLE_DATA } from "../../../constants/variableFields.js";
 import { Upload } from "@lucide/vue";
 
 const props = defineProps({
@@ -15,6 +13,17 @@ const props = defineProps({
 const blockStore = useBlockStore();
 const historyStore = useHistoryStore();
 const settingsStore = useSettingsStore();
+
+function getSchemaFields(documentType) {
+    const schema = settingsStore.documentSchemas[documentType];
+    if (!schema) return [];
+    return schema.fields || [];
+}
+
+function getSchemaGroups(documentType) {
+    const fields = getSchemaFields(documentType);
+    return [...new Set(fields.map(f => f.group))];
+}
 
 const schemaFields = computed(() => {
     return getSchemaFields(settingsStore.documentType);
@@ -142,7 +151,7 @@ const sampleDataRows = computed(() => {
     return schemaFields.value
         .filter(f => f.type !== 'table')
         .map(f => {
-            const raw = getNestedValue(SAMPLE_DATA, f.key);
+            const raw = getNestedValue(settingsStore.sampleData, f.key);
             const sampleValue = raw !== undefined && raw !== null
                 ? String(raw)
                 : '—';
@@ -179,7 +188,7 @@ const sampleDataGroups = computed(() => {
 });
 
 const itemProperties = computed(() => {
-    const firstItem = SAMPLE_DATA.items?.[0] || {};
+    const firstItem = settingsStore.sampleData.items?.[0] || {};
     const props = {};
     for (const [key, val] of Object.entries(firstItem)) {
         props[key] = typeof val;

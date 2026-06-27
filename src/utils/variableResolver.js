@@ -102,18 +102,34 @@ function formatCurrency(value, { currency = 'USD', locale = 'en-US', decimals } 
  * Production (previewMode=false, data=posData):
  *   resolves against real POS data
  */
+import { useSettingsStore } from '../stores/settings.js'
+
 export function resolveBlockBinding(block, data, previewMode = false) {
   const binding = block.dataBinding
   if (!binding || !binding.field) {
     return null
   }
 
-  const resolvedData = data ?? SAMPLE_DATA
+  let resolvedData = data
+  let activeSchemas = DOCUMENT_SCHEMAS
+
+  try {
+    const settingsStore = useSettingsStore()
+    if (!resolvedData) {
+      resolvedData = settingsStore.sampleData
+    }
+    activeSchemas = settingsStore.documentSchemas
+  } catch (e) {
+    if (!resolvedData) {
+      resolvedData = SAMPLE_DATA
+    }
+  }
+
   const rawValue = getNestedValue(resolvedData, binding.field)
 
   if (rawValue === undefined || rawValue === null) {
     if (previewMode) {
-      return `[${getFieldLabelForDoc(resolvedData, binding.field)}]`
+      return `[${getFieldLabelForDoc(resolvedData, binding.field, activeSchemas)}]`
     }
     return block.fallback ?? block.content ?? ''
   }
@@ -138,8 +154,8 @@ export function getFieldLabel(fieldKey) {
   return parts.map(p => p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())).join(' › ')
 }
 
-function getFieldLabelForDoc(data, fieldKey) {
-  for (const schema of Object.values(DOCUMENT_SCHEMAS)) {
+function getFieldLabelForDoc(data, fieldKey, activeSchemas = DOCUMENT_SCHEMAS) {
+  for (const schema of Object.values(activeSchemas)) {
     const field = schema.fields.find(f => f.key === fieldKey)
     if (field) return field.label
   }

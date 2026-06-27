@@ -130,6 +130,8 @@ export const useBlockStore = defineStore('blocks', () => {
     removeBlock(container.id)
   }
 
+  const documentPresets = ref(DOCUMENT_PRESETS)
+
   function clearAll() {
     blocks.value = []
     selectedIds.value = []
@@ -140,8 +142,12 @@ export const useBlockStore = defineStore('blocks', () => {
     selectedIds.value = []
   }
 
+  function setDocumentPresets(presets) {
+    documentPresets.value = presets
+  }
+
   function loadPreset(documentType, width, height) {
-    const preset = DOCUMENT_PRESETS[documentType]
+    const preset = documentPresets.value[documentType]
     if (!preset) return
     const newBlocks = preset
       .map(pb => {
@@ -185,5 +191,7 @@ export const useBlockStore = defineStore('blocks', () => {
     loadPreset,
     groupSelected,
     ungroupSelected,
+    documentPresets,
+    setDocumentPresets,
   }
 })

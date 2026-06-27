@@ -4,8 +4,6 @@ import { useBlockStore } from "../../../stores/blocks.js";
 import { useHistoryStore } from "../../../stores/history.js";
 import { useSettingsStore } from "../../../stores/settings.js";
 import { Trash2 } from "@lucide/vue";
-import { SAMPLE_DATA } from "../../../constants/variableFields.js";
-
 const props = defineProps({
     block: { type: Object, required: true },
 });
@@ -775,7 +773,7 @@ function addTableRow() {
 }
 
 const availableDataKeys = computed(() => {
-    const firstItem = SAMPLE_DATA.items?.[0] || {};
+    const firstItem = settingsStore.sampleData?.items?.[0] || {};
     return Object.keys(firstItem);
 });
 

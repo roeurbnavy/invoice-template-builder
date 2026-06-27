@@ -228,7 +228,7 @@ function toggleTheme() {
         <!-- Logo -->
         <div class="topbar-logo">
             <FileText :size="18" />
-            <span>InvoiceForge</span>
+            <span>Invoice Builder</span>
         </div>
 
         <!-- Document Type -->

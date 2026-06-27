@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { DOCUMENT_SCHEMAS } from '../constants/documentSchemas.js'
+import { SAMPLE_DATA } from '../constants/variableFields.js'
 
 const CURRENCIES = [
   { code: 'USD', symbol: '$',  name: 'US Dollar' },
@@ -37,8 +38,6 @@ const FONTS = [
   { name: 'Times New Roman', value: '"Times New Roman", serif' },
 ]
 
-const DOCUMENT_TYPES = Object.keys(DOCUMENT_SCHEMAS)
-
 export const useSettingsStore = defineStore('settings', () => {
   const company = ref('My Company')
   const documentType = ref('Custom')
@@ -48,20 +47,37 @@ export const useSettingsStore = defineStore('settings', () => {
 
   const currencies = ref(CURRENCIES)
   const fonts = ref(FONTS)
-  const documentTypes = ref(DOCUMENT_TYPES)
+  
+  const documentSchemas = ref(DOCUMENT_SCHEMAS)
+  const sampleData = ref(SAMPLE_DATA)
+  
+  const documentTypes = computed(() => Object.keys(documentSchemas.value))
 
   function setCurrency(code) { currency.value = code }
   function setDocumentType(type) { documentType.value = type }
   function setGlobalFont(font) { globalFont.value = font }
   function setGlobalFontSize(size) { globalFontSize.value = size }
   function setCompany(name) { company.value = name }
+  
+  function setDocumentSchemas(schemas) {
+    documentSchemas.value = schemas
+    // Reset document type if it's no longer in the schema keys list
+    if (schemas && !Object.keys(schemas).includes(documentType.value)) {
+      documentType.value = Object.keys(schemas)[0] || 'Custom'
+    }
+  }
+  
+  function setSampleData(data) {
+    sampleData.value = data
+  }
 
   const currentCurrency = () => CURRENCIES.find(c => c.code === currency.value) ?? CURRENCIES[0]
 
   return {
     company, documentType, currency, globalFont, globalFontSize,
-    currencies, fonts, documentTypes,
+    currencies, fonts, documentTypes, documentSchemas, sampleData,
     setCurrency, setDocumentType, setGlobalFont, setGlobalFontSize, setCompany,
+    setDocumentSchemas, setSampleData,
     currentCurrency,
   }
 })
