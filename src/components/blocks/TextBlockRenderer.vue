@@ -3,6 +3,7 @@ import { computed, ref, watch, nextTick } from "vue";
 import { useBlockStore } from "../../stores/blocks.js";
 import { useCanvasStore } from "../../stores/canvas.js";
 import { resolveBlockBinding } from "../../utils/variableResolver.js";
+import { getBorderStyle } from "../../utils/blockDefaults.js";
 
 const props = defineProps({
     block: { type: Object, required: true },
@@ -31,9 +32,7 @@ const blockStyle = computed(() => ({
     textTransform: props.block.textTransform ?? "none",
     backgroundColor: props.block.backgroundColor ?? "transparent",
     padding: `${props.block.paddingTop ?? 2}px ${props.block.paddingRight ?? 4}px ${props.block.paddingBottom ?? 2}px ${props.block.paddingLeft ?? 4}px`,
-    border: props.block.borderWidth
-        ? `${props.block.borderWidth}px ${props.block.borderStyle ?? "solid"} ${props.block.borderColor ?? "#000"}`
-        : "none",
+    ...getBorderStyle(props.block),
     borderRadius: `${props.block.borderRadius ?? 0}px`,
 }));
 

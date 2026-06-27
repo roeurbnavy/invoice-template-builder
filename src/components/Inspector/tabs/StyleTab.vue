@@ -59,22 +59,7 @@ function handleInput(prop, e, isNum = true) {
       <div class="field-label">Borders</div>
       <div class="field-row">
         <div>
-          <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px">Border Width</label>
-          <div class="field-unit">
-            <input
-              type="number"
-              :value="block.borderWidth ?? 0"
-              class="inp"
-              min="0"
-              :disabled="block.locked"
-              @input="handleInput('borderWidth', $event)"
-              @blur="commitHistory"
-            />
-            <span class="field-unit-label">px</span>
-          </div>
-        </div>
-        <div>
-          <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px">Border Style</label>
+          <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px">Style</label>
           <select
             :value="block.borderStyle ?? 'solid'"
             class="inp"
@@ -86,6 +71,21 @@ function handleInput(prop, e, isNum = true) {
             <option value="dashed">Dashed</option>
             <option value="dotted">Dotted</option>
           </select>
+        </div>
+        <div>
+          <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px">Radius</label>
+          <div class="field-unit">
+            <input
+              type="number"
+              :value="block.borderRadius ?? 0"
+              class="inp"
+              min="0"
+              :disabled="block.locked"
+              @input="handleInput('borderRadius', $event)"
+              @blur="commitHistory"
+            />
+            <span class="field-unit-label">px</span>
+          </div>
         </div>
       </div>
 
@@ -112,16 +112,66 @@ function handleInput(prop, e, isNum = true) {
             />
           </div>
         </div>
+      </div>
+
+      <div class="field-row" style="margin-top: 8px">
         <div>
-          <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px">Border Radius</label>
+          <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px">Width Top</label>
           <div class="field-unit">
             <input
               type="number"
-              :value="block.borderRadius ?? 0"
+              :value="block.borderTopWidth ?? block.borderWidth ?? 0"
               class="inp"
               min="0"
               :disabled="block.locked"
-              @input="handleInput('borderRadius', $event)"
+              @input="handleInput('borderTopWidth', $event)"
+              @blur="commitHistory"
+            />
+            <span class="field-unit-label">px</span>
+          </div>
+        </div>
+        <div>
+          <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px">Width Right</label>
+          <div class="field-unit">
+            <input
+              type="number"
+              :value="block.borderRightWidth ?? block.borderWidth ?? 0"
+              class="inp"
+              min="0"
+              :disabled="block.locked"
+              @input="handleInput('borderRightWidth', $event)"
+              @blur="commitHistory"
+            />
+            <span class="field-unit-label">px</span>
+          </div>
+        </div>
+      </div>
+      <div class="field-row" style="margin-top: 8px">
+        <div>
+          <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px">Width Bottom</label>
+          <div class="field-unit">
+            <input
+              type="number"
+              :value="block.borderBottomWidth ?? block.borderWidth ?? 0"
+              class="inp"
+              min="0"
+              :disabled="block.locked"
+              @input="handleInput('borderBottomWidth', $event)"
+              @blur="commitHistory"
+            />
+            <span class="field-unit-label">px</span>
+          </div>
+        </div>
+        <div>
+          <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px">Width Left</label>
+          <div class="field-unit">
+            <input
+              type="number"
+              :value="block.borderLeftWidth ?? block.borderWidth ?? 0"
+              class="inp"
+              min="0"
+              :disabled="block.locked"
+              @input="handleInput('borderLeftWidth', $event)"
               @blur="commitHistory"
             />
             <span class="field-unit-label">px</span>

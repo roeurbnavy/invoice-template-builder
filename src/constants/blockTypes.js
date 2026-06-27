@@ -30,7 +30,6 @@ export const BLOCK_TYPES = Object.freeze({
   ISSUE_DATE: "issue_date",
   DUE_DATE: "due_date",
   REFERENCE_NUMBER: "reference_number",
-  NOTES: "notes",
   TERMS: "terms",
   FOOTER_NOTE: "footer_note",
   THANK_YOU: "thank_you",
@@ -38,9 +37,7 @@ export const BLOCK_TYPES = Object.freeze({
   // Table & Data
   ITEM_TABLE: "item_table",
   TABLE_BUILDER: "table_builder",
-  TOTALS_BLOCK: "totals_block",
   CURRENCY_SUMMARY: "currency_summary",
-  AMOUNT_IN_WORDS: "amount_in_words",
 
   // Financial
   SUBTOTAL: "subtotal",
@@ -73,12 +70,9 @@ export const BLOCK_TYPES = Object.freeze({
   // Simplified library additions
   CHECKBOXES_ROW: "checkboxes_row",
   TABLE: "table",
-  DOCUMENT_HEADER: "document_header",
   STAMP_BOX: "stamp_box",
   CUT_LINE: "cut_line",
   CARBON_COPY_LABEL: "carbon_copy_label",
-  RECEIPT_HEADER: "receipt_header",
-  RECEIPT_FOOTER: "receipt_footer",
 });
 
 export const BLOCK_CATEGORIES = [
@@ -99,13 +93,13 @@ export const BLOCK_CATEGORIES = [
     id: "document",
     label: "Document",
     icon: "FileText",
-    blocks: ["document_header", "notes", "barcode"],
+    blocks: ["barcode"],
   },
   {
     id: "financial",
     label: "Financial",
     icon: "DollarSign",
-    blocks: ["item_table", "totals_block", "amount_in_words"],
+    blocks: ["item_table"],
   },
   {
     id: "footer",
@@ -118,11 +112,5 @@ export const BLOCK_CATEGORIES = [
     label: "Print",
     icon: "Printer",
     blocks: ["cut_line", "page_break", "carbon_copy_label"],
-  },
-  {
-    id: "mobile",
-    label: "Mobile / Receipt",
-    icon: "Smartphone",
-    blocks: ["receipt_header", "receipt_footer"],
   },
 ];

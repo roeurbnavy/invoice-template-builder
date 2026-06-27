@@ -8,6 +8,7 @@ import ZoomControls from './ZoomControls.vue'
 import AlignmentGuides from './AlignmentGuides.vue'
 import CanvasBlock from './CanvasBlock.vue'
 import ContextMenu from './ContextMenu.vue'
+import CanvasRuler from './CanvasRuler.vue'
 
 const canvasStore = useCanvasStore()
 const blockStore = useBlockStore()
@@ -257,42 +258,54 @@ onUnmounted(() => {
         justifyContent: 'center',
         transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
         transition: isPanning ? 'none' : 'transform 0.1s ease',
-        ...workspaceContentStyle,
       }"
     >
-      <!-- Paper -->
-      <div
-        ref="paperEl"
-        id="canvas-paper"
-        :style="paperStyle"
-        :class="{ 'drop-active': isDraggingOver }"
-        @drop.prevent="handleDrop"
-        @dragover.prevent="handleDragOver"
-        @dragleave="handleDragLeave"
-        @contextmenu.prevent
-      >
-        <!-- Margin indicator -->
-        <div class="margin-indicator" style="
-          position: absolute;
-          inset: 20px;
-          border: 1px dashed rgba(0,180,216,0.15);
-          pointer-events: none;
-          z-index: 0;
-        " />
+      <!-- Ruler + Paper layout -->
+      <div style="display: flex; flex-direction: column; align-items: flex-start;">
+        <div v-if="canvasStore.showRulers" style="display: flex;">
+          <CanvasRuler :ruler-size="24" />
+        </div>
+        <div style="display: flex;">
+          <div v-if="canvasStore.showRulers">
+            <CanvasRuler :ruler-size="24" vertical />
+          </div>
+          <div
+            ref="paperEl"
+            id="canvas-paper"
+            :style="paperStyle"
+            :class="{ 'drop-active': isDraggingOver }"
+            @drop.prevent="handleDrop"
+            @dragover.prevent="handleDragOver"
+            @dragleave="handleDragLeave"
+            @contextmenu.prevent
+          >
+            <!-- Grid overlay -->
+            <div v-if="canvasStore.showGrid" class="grid-overlay" />
 
-        <!-- Alignment Guides (rendered inside paper) -->
-        <AlignmentGuides />
+            <!-- Margin indicator -->
+            <div class="margin-indicator" style="
+              position: absolute;
+              inset: 20px;
+              border: 1px dashed rgba(0,180,216,0.15);
+              pointer-events: none;
+              z-index: 0;
+            " />
 
-        <!-- Drag-select rect -->
-        <div v-if="dragSelect.active" :style="dragSelectStyle" />
+            <!-- Alignment Guides (rendered inside paper) -->
+            <AlignmentGuides />
 
-        <!-- Blocks -->
-        <CanvasBlock
-          v-for="block in blockStore.orderedBlocks"
-          :key="block.id"
-          :block="block"
-          @contextmenu.stop="(e) => showContextMenu(e, block.id)"
-        />
+            <!-- Drag-select rect -->
+            <div v-if="dragSelect.active" :style="dragSelectStyle" />
+
+            <!-- Blocks -->
+            <CanvasBlock
+              v-for="block in blockStore.orderedBlocks"
+              :key="block.id"
+              :block="block"
+              @contextmenu.stop="(e) => showContextMenu(e, block.id)"
+            />
+          </div>
+        </div>
       </div>
     </div>
 
@@ -321,5 +334,16 @@ onUnmounted(() => {
 .drop-active {
   outline: 2px dashed var(--color-accent) !important;
   outline-offset: -4px;
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image:
+    linear-gradient(rgba(128,128,128,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(128,128,128,0.08) 1px, transparent 1px);
+  background-size: v-bind('canvasStore.gridSize + "px"') v-bind('canvasStore.gridSize + "px"');
 }
 </style>

@@ -1,6 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 import { useBlockStore } from '../../stores/blocks.js'
+import { useCanvasStore } from '../../stores/canvas.js'
+import { resolveBlockBinding } from '../../utils/variableResolver.js'
+import { getBorderStyle } from '../../utils/blockDefaults.js'
 
 const props = defineProps({
   block: { type: Object, required: true },
@@ -8,6 +11,13 @@ const props = defineProps({
 })
 
 const blockStore = useBlockStore()
+const canvasStore = useCanvasStore()
+
+const displayText = computed(() => {
+  const binding = resolveBlockBinding(props.block, null, canvasStore.previewMode);
+  if (binding !== null) return String(binding);
+  return props.block.content ?? 'DRAFT';
+})
 
 const style = computed(() => ({
   width: '100%',
@@ -26,9 +36,7 @@ const style = computed(() => ({
   textAlign: 'center',
   pointerEvents: props.fillMode ? 'auto' : 'none', // Allow clicking/editing when fillMode is true
   userSelect: 'none',
-  border: props.block.borderWidth
-    ? `${props.block.borderWidth}px ${props.block.borderStyle ?? 'solid'} ${props.block.borderColor ?? '#000'}`
-    : 'none',
+  ...getBorderStyle(props.block),
   borderRadius: `${props.block.borderRadius ?? 0}px`,
 }))
 </script>
@@ -42,7 +50,7 @@ const style = computed(() => ({
       @input="blockStore.updateBlock(block.id, { content: $event.target.value })"
     />
     <span v-else style="display: block; white-space: nowrap">
-      {{ block.content || 'DRAFT' }}
+      {{ displayText }}
     </span>
   </div>
 </template>

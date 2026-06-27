@@ -3,6 +3,7 @@ import { computed, ref, watch, nextTick } from "vue";
 import { useCanvasStore } from "../../stores/canvas.js";
 import { useBlockStore } from "../../stores/blocks.js";
 import { useHistoryStore } from "../../stores/history.js";
+import { getBorderStyle } from "../../utils/blockDefaults.js";
 
 const props = defineProps({
     block: { type: Object, required: true },
@@ -61,9 +62,7 @@ const style = computed(() => ({
     flexDirection: "column",
     justifyContent: "center",
     gap: "4px",
-    border: props.block.borderWidth
-        ? `${props.block.borderWidth}px ${props.block.borderStyle ?? "solid"} ${props.block.borderColor ?? "#000"}`
-        : "none",
+    ...getBorderStyle(props.block),
     borderRadius: `${props.block.borderRadius ?? 0}px`,
 }));
 </script>

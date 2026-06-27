@@ -65,7 +65,6 @@ const visibleTabs = computed(() => {
                 "issue_date",
                 "due_date",
                 "reference_number",
-                "notes",
                 "terms",
                 "footer_note",
                 "thank_you",
@@ -74,11 +73,6 @@ const visibleTabs = computed(() => {
                 "client_info",
                 "bank_details",
                 "watermark",
-                "totals_block",
-                "document_header",
-                "amount_in_words",
-                "receipt_header",
-                "receipt_footer",
             ].includes(type);
         }
         if (tab.id === "data") {
@@ -87,7 +81,6 @@ const visibleTabs = computed(() => {
         if (tab.id === "block") {
             return [
                 "item_table",
-                "totals_block",
                 "image",
                 "shape",
                 "divider",
@@ -97,10 +90,7 @@ const visibleTabs = computed(() => {
                 "client_info",
                 "signature_line",
                 "watermark",
-                "document_header",
                 "stamp_box",
-                "receipt_header",
-                "receipt_footer",
                 "checkboxes_row",
                 "barcode",
                 "carbon_copy_label",

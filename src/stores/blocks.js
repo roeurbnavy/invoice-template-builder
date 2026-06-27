@@ -102,6 +102,34 @@ export const useBlockStore = defineStore('blocks', () => {
     return newBlock
   }
 
+  function groupSelected() {
+    const selected = blocks.value.filter(b => selectedIds.value.includes(b.id))
+    if (selected.length < 2) return
+    const childIds = selected.map(b => b.id)
+    const minX = Math.min(...selected.map(b => b.x ?? 0))
+    const minY = Math.min(...selected.map(b => b.y ?? 0))
+    const maxX = Math.max(...selected.map(b => (b.x ?? 0) + (b.width ?? 100)))
+    const maxY = Math.max(...selected.map(b => (b.y ?? 0) + (b.height ?? 50)))
+    const container = getBlockDefaults('container', {
+      x: minX, y: minY,
+      width: maxX - minX, height: maxY - minY,
+      backgroundColor: 'transparent',
+      borderWidth: 1, borderColor: '#00b4d8', borderStyle: 'dashed',
+      zIndex: Math.max(...selected.map(b => b.zIndex ?? 0)) + 1,
+      childIds,
+    })
+    blocks.value.push(container)
+    selectBlock(container.id)
+  }
+
+  function ungroupSelected() {
+    const container = blocks.value.find(b => b.id === selectedIds.value[0])
+    if (!container || !container.childIds?.length) return
+    const ids = [...(container.childIds ?? [])]
+    selectBlocks(ids)
+    removeBlock(container.id)
+  }
+
   function clearAll() {
     blocks.value = []
     selectedIds.value = []
@@ -155,5 +183,7 @@ export const useBlockStore = defineStore('blocks', () => {
     clearAll,
     setBlocks,
     loadPreset,
+    groupSelected,
+    ungroupSelected,
   }
 })

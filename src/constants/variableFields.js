@@ -17,6 +17,7 @@ export const VARIABLE_FIELDS = [
 
   // Customer
   { key: 'customer.name',      label: 'Customer Name',     group: 'Customer', type: 'string' },
+  { key: 'customer.sub_name',  label: 'Customer Sub-name', group: 'Customer', type: 'string' },
   { key: 'customer.email',     label: 'Customer Email',    group: 'Customer', type: 'string' },
   { key: 'customer.phone',     label: 'Customer Phone',    group: 'Customer', type: 'string' },
   { key: 'customer.address',   label: 'Customer Address',  group: 'Customer', type: 'string' },
@@ -39,6 +40,10 @@ export const VARIABLE_FIELDS = [
   { key: 'doc.type',           label: 'Document Type',     group: 'Document', type: 'string' },
   { key: 'doc.page_number',    label: 'Page Number',       group: 'Document', type: 'number' },
   { key: 'doc.total_pages',    label: 'Total Pages',       group: 'Document', type: 'number' },
+
+  // Financial (Khmer Specific)
+  { key: 'totals.exchange_rate', label: 'Exchange Rate',     group: 'Financial', type: 'string' },
+  { key: 'totals.total_riel',    label: 'Grand Total (Riel)',group: 'Financial', type: 'string' },
 ]
 
 export const VARIABLE_GROUPS = [...new Set(VARIABLE_FIELDS.map(f => f.group))]
@@ -82,6 +87,8 @@ export const SAMPLE_DATA = {
     total: 1045.00,
     balance: 1045.00,
     paid: 0,
+    exchange_rate: '4,053 ៛',
+    total_riel: '1,576,400 ៛',
   },
   deposit: {
     total: 2000.00,
@@ -105,6 +112,7 @@ export const SAMPLE_DATA = {
   },
   customer: {
     name: 'Acme Corporation',
+    sub_name: 'Oun Gech',
     email: 'billing@acme.com',
     phone: '+1 (555) 123-4567',
     address: '123 Main Street, Suite 100',

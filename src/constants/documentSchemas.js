@@ -266,6 +266,36 @@ export const DOCUMENT_SCHEMAS = {
     ],
   },
 
+  'Khmer Invoice': {
+    label: 'Khmer Invoice (វិក្កយបត្រ)',
+    description: 'Traditional Khmer invoice with dual currency (USD/KHR), exchange rate, and triple signature fields',
+    fields: [
+      // Document
+      { key: 'doc.number', label: 'Invoice No (លេខវិក្កយបត្រ)', group: 'Document', type: 'string' },
+      { key: 'doc.date', label: 'Date (ថ្ងៃទី)', group: 'Document', type: 'date' },
+      { key: 'doc.reference', label: 'Reference No (លេខសំគាល់)', group: 'Document', type: 'string' },
+      { key: 'doc.notes', label: 'Note (សំគាល់)', group: 'Document', type: 'string' },
+      { key: 'doc.terms', label: 'Terms & Conditions', group: 'Document', type: 'string' },
+
+      // Company
+      { key: 'company.name', label: 'Company Name', group: 'Company', type: 'string' },
+      { key: 'company.phone', label: 'Company Phone', group: 'Company', type: 'string' },
+
+      // Customer
+      { key: 'customer.name', label: 'Customer Name (ឈ្មោះអតិថិជន)', group: 'Customer', type: 'string' },
+      { key: 'customer.sub_name', label: 'Customer Sub-name (ឈ្មោះអតិថិជនភាសាអង់គ្លេស)', group: 'Customer', type: 'string' },
+      { key: 'customer.phone', label: 'Customer Phone (លេខទូរស័ព្ទ)', group: 'Customer', type: 'string' },
+
+      // Financial
+      { key: 'totals.total', label: 'Grand Total USD (សរុបទឹកប្រាក់)', group: 'Financial', type: 'currency' },
+      { key: 'totals.exchange_rate', label: 'Exchange Rate (អត្រាប្តូរប្រាក់)', group: 'Financial', type: 'string' },
+      { key: 'totals.total_riel', label: 'Grand Total KHR (សរុបប្រាក់រៀល)', group: 'Financial', type: 'string' },
+
+      // Items
+      { key: 'items', label: 'Line Items (តារាងមុខទំនិញ)', group: 'Items', type: 'table' }
+    ]
+  },
+
   Custom: {
     label: 'Custom',
     description: 'Blank canvas',

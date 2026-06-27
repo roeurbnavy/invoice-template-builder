@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useBlockStore } from '../../stores/blocks.js'
+import { getBorderStyle } from '../../utils/blockDefaults.js'
 
 const props = defineProps({
   block: { type: Object, required: true },
@@ -12,7 +13,7 @@ const blockStore = useBlockStore()
 const style = computed(() => ({
   width: '100%', height: '100%',
   boxSizing: 'border-box',
-  border: `${props.block.borderWidth ?? 2}px ${props.block.borderStyle ?? 'solid'} ${props.block.borderColor ?? '#000000'}`,
+  ...getBorderStyle(props.block),
   borderRadius: `${props.block.borderRadius ?? 0}px`,
   backgroundColor: 'transparent',
   display: 'flex', alignItems: 'center', justifyContent: 'center',

@@ -112,11 +112,6 @@ export const BLOCK_META = {
     name: "Reference No.",
     description: "PO or custom reference",
   },
-  notes: {
-    icon: "NotebookPen",
-    name: "Notes",
-    description: "Free text notes area",
-  },
   terms: {
     icon: "ScrollText",
     name: "Terms & Conditions",
@@ -144,22 +139,11 @@ export const BLOCK_META = {
     name: "Table Builder",
     description: "Fully custom column table",
   },
-  totals_block: {
-    icon: "Calculator",
-    name: "Totals Block",
-    description: "Subtotal, tax, grand total",
-  },
   currency_summary: {
     icon: "Coins",
     name: "Currency Summary",
     description: "Multi-currency breakdown",
   },
-  amount_in_words: {
-    icon: "MessageSquare",
-    name: "Amount in Words",
-    description: '"Five Dollars Only"',
-  },
-
   // Financial
   subtotal: {
     icon: "Sigma",
@@ -260,11 +244,6 @@ export const BLOCK_META = {
   },
 
   // New simplified blocks
-  document_header: {
-    icon: "FileText",
-    name: "Document Header",
-    description: "Title + Number + Date + Reference",
-  },
   checkboxes_row: {
     icon: "CheckSquare",
     name: "Checkboxes Row",
@@ -289,15 +268,5 @@ export const BLOCK_META = {
     icon: "Copy",
     name: "Carbon Copy Label",
     description: "ORIGINAL / COPY 1 / COPY 2",
-  },
-  receipt_header: {
-    icon: "Store",
-    name: "Receipt Header",
-    description: "Shop name, address, phone",
-  },
-  receipt_footer: {
-    icon: "MessageCircle",
-    name: "Receipt Footer",
-    description: "Thank you + return policy",
   },
 };

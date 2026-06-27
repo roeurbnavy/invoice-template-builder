@@ -105,22 +105,6 @@ export const DOCUMENT_PRESETS = {
       }
     },
     {
-      type: BLOCK_TYPES.TOTALS_BLOCK,
-      xPercent: 0.60,
-      yPercent: 0.56,
-      widthPercent: 0.35,
-      heightPercent: 0.15,
-      defaultProps: {
-        showSubtotal: true,
-        showDiscount: false,
-        showTax: true,
-        showTotal: true,
-        showBalance: false,
-        taxRate: 10,
-        discountValue: 0
-      }
-    },
-    {
       type: BLOCK_TYPES.BANK_DETAILS,
       xPercent: 0.05,
       yPercent: 0.74,
@@ -269,33 +253,6 @@ export const DOCUMENT_PRESETS = {
       }
     },
     {
-      type: BLOCK_TYPES.TOTALS_BLOCK,
-      xPercent: 0.60,
-      yPercent: 0.55,
-      widthPercent: 0.35,
-      heightPercent: 0.15,
-      defaultProps: {
-        showSubtotal: true,
-        showDiscount: true,
-        showTax: false,
-        showTotal: true,
-        showBalance: false,
-        discountType: 'fixed',
-        discountValue: 10
-      }
-    },
-    {
-      type: BLOCK_TYPES.NOTES,
-      xPercent: 0.05,
-      yPercent: 0.72,
-      widthPercent: 0.50,
-      heightPercent: 0.10,
-      defaultProps: {
-        label: 'Order Notes',
-        content: 'Delivery is expected within 7-10 working days.'
-      }
-    },
-    {
       type: BLOCK_TYPES.SIGNATURE_LINE,
       xPercent: 0.05,
       yPercent: 0.85,
@@ -400,23 +357,6 @@ export const DOCUMENT_PRESETS = {
           { id: 'description', label: 'Description', width: 70, visible: true },
           { id: 'total', label: 'Amount', width: 30, visible: true }
         ]
-      }
-    },
-    {
-      type: BLOCK_TYPES.TOTALS_BLOCK,
-      xPercent: 0.30,
-      yPercent: 0.52,
-      widthPercent: 0.40,
-      heightPercent: 0.05,
-      defaultProps: {
-        showSubtotal: false,
-        showDiscount: false,
-        showTax: false,
-        showTotal: true,
-        showBalance: false,
-        fontSize: 16,
-        fontWeight: 'bold',
-        textAlign: 'center'
       }
     },
     {
@@ -552,17 +492,6 @@ export const DOCUMENT_PRESETS = {
       }
     },
     {
-      type: BLOCK_TYPES.NOTES,
-      xPercent: 0.05,
-      yPercent: 0.28,
-      widthPercent: 0.90,
-      heightPercent: 0.05,
-      defaultProps: {
-        label: 'Dear Customer',
-        content: 'Dear Acme Corporation, we are pleased to submit our commercial quotation for the requested items detailed below.'
-      }
-    },
-    {
       type: BLOCK_TYPES.ITEM_TABLE,
       xPercent: 0.05,
       yPercent: 0.35,
@@ -578,22 +507,6 @@ export const DOCUMENT_PRESETS = {
           { id: 'discount', label: 'Discount', width: 10, visible: true },
           { id: 'total', label: 'Total', width: 15, visible: true }
         ]
-      }
-    },
-    {
-      type: BLOCK_TYPES.TOTALS_BLOCK,
-      xPercent: 0.60,
-      yPercent: 0.57,
-      widthPercent: 0.35,
-      heightPercent: 0.15,
-      defaultProps: {
-        showSubtotal: true,
-        showDiscount: true,
-        showTax: true,
-        showTotal: true,
-        showBalance: false,
-        taxRate: 10,
-        discountValue: 0
       }
     },
     {
@@ -729,17 +642,6 @@ export const DOCUMENT_PRESETS = {
           { id: 'condition', label: 'Condition', width: 15, visible: true },
           { id: 'notes', label: 'Remarks', width: 15, visible: true }
         ]
-      }
-    },
-    {
-      type: BLOCK_TYPES.NOTES,
-      xPercent: 0.05,
-      yPercent: 0.54,
-      widthPercent: 0.90,
-      heightPercent: 0.08,
-      defaultProps: {
-        label: 'Instructions',
-        content: 'Please inspect the shipment upon arrival. Notify carrier immediately of any damaged items.'
       }
     },
     {
@@ -890,21 +792,6 @@ export const DOCUMENT_PRESETS = {
       }
     },
     {
-      type: BLOCK_TYPES.TOTALS_BLOCK,
-      xPercent: 0.60,
-      yPercent: 0.66,
-      widthPercent: 0.35,
-      heightPercent: 0.15,
-      defaultProps: {
-        showSubtotal: true,
-        showDiscount: false,
-        showTax: true,
-        showTotal: true,
-        showBalance: false,
-        taxRate: 10
-      }
-    },
-    {
       type: BLOCK_TYPES.TERMS,
       xPercent: 0.05,
       yPercent: 0.82,
@@ -1051,33 +938,6 @@ export const DOCUMENT_PRESETS = {
       }
     },
     {
-      type: BLOCK_TYPES.TOTALS_BLOCK,
-      xPercent: 0.60,
-      yPercent: 0.58,
-      widthPercent: 0.35,
-      heightPercent: 0.15,
-      defaultProps: {
-        showSubtotal: false,
-        showDiscount: false,
-        showTax: false,
-        showTotal: true,
-        showBalance: false,
-        fontSize: 14,
-        fontWeight: 'bold'
-      }
-    },
-    {
-      type: BLOCK_TYPES.NOTES,
-      xPercent: 0.05,
-      yPercent: 0.74,
-      widthPercent: 0.45,
-      heightPercent: 0.10,
-      defaultProps: {
-        label: 'Notice',
-        content: 'The credit amount will be applied to your outstanding balance or can be refunded upon request.'
-      }
-    },
-    {
       type: BLOCK_TYPES.SIGNATURE_LINE,
       xPercent: 0.55,
       yPercent: 0.74,
@@ -1201,23 +1061,6 @@ export const DOCUMENT_PRESETS = {
       }
     },
     {
-      type: BLOCK_TYPES.TOTALS_BLOCK,
-      xPercent: 0.60,
-      yPercent: 0.55,
-      widthPercent: 0.35,
-      heightPercent: 0.18,
-      defaultProps: {
-        showSubtotal: false,
-        showDiscount: false,
-        showTax: false,
-        showTotal: true,
-        showBalance: true,
-        totalLabel: 'Total Amount:',
-        balanceLabel: 'Balance Due:',
-        fontSize: 13
-      }
-    },
-    {
       type: BLOCK_TYPES.FIELD_ROW,
       xPercent: 0.05,
       yPercent: 0.75,
@@ -1264,6 +1107,306 @@ export const DOCUMENT_PRESETS = {
         content: 'This deposit is non-refundable and will be applied to the final invoice.',
         textAlign: 'center',
         fontSize: 9
+      }
+    }
+  ],
+
+  'Khmer Invoice': [
+    // Header Left
+    {
+      type: BLOCK_TYPES.FIELD_ROW,
+      xPercent: 0.05,
+      yPercent: 0.04,
+      widthPercent: 0.35,
+      heightPercent: 0.03,
+      defaultProps: {
+        label: 'ឈ្មោះអតិថិជន :',
+        value: 'ម៉ាក់ អូន ហ៊ិច',
+        labelWidth: 35,
+        fontFamily: '"Noto Sans Khmer", sans-serif',
+        fontSize: 12,
+        labelFontWeight: 'bold',
+        dataBinding: { field: 'customer.name', type: 'string' }
+      }
+    },
+    {
+      type: BLOCK_TYPES.TEXT,
+      xPercent: 0.05,
+      yPercent: 0.07,
+      widthPercent: 0.35,
+      heightPercent: 0.03,
+      defaultProps: {
+        content: 'Oun Gech',
+        fontFamily: '"Noto Sans", sans-serif',
+        fontSize: 11,
+        color: '#555555',
+        dataBinding: { field: 'customer.sub_name', type: 'string' }
+      }
+    },
+    {
+      type: BLOCK_TYPES.FIELD_ROW,
+      xPercent: 0.05,
+      yPercent: 0.10,
+      widthPercent: 0.35,
+      heightPercent: 0.03,
+      defaultProps: {
+        label: 'លេខសំគាល់ :',
+        value: '029',
+        labelWidth: 35,
+        fontFamily: '"Noto Sans Khmer", sans-serif',
+        fontSize: 12,
+        labelFontWeight: 'bold',
+        dataBinding: { field: 'doc.reference', type: 'string' }
+      }
+    },
+    {
+      type: BLOCK_TYPES.FIELD_ROW,
+      xPercent: 0.05,
+      yPercent: 0.13,
+      widthPercent: 0.35,
+      heightPercent: 0.03,
+      defaultProps: {
+        label: 'លេខទូរស័ព្ទ :',
+        value: '',
+        labelWidth: 35,
+        fontFamily: '"Noto Sans Khmer", sans-serif',
+        fontSize: 12,
+        labelFontWeight: 'bold',
+        dataBinding: { field: 'customer.phone', type: 'string' }
+      }
+    },
+
+    // Stylized Center Title
+    {
+      type: BLOCK_TYPES.TEXT,
+      xPercent: 0.42,
+      yPercent: 0.04,
+      widthPercent: 0.16,
+      heightPercent: 0.06,
+      defaultProps: {
+        content: 'វិក្កយបត្រ',
+        fontFamily: '"Moul", cursive',
+        fontSize: 22,
+        textAlign: 'center',
+        color: '#000000'
+      }
+    },
+
+    // Header Right
+    {
+      type: BLOCK_TYPES.FIELD_ROW,
+      xPercent: 0.60,
+      yPercent: 0.04,
+      widthPercent: 0.35,
+      heightPercent: 0.03,
+      defaultProps: {
+        label: 'លេខវិក្កយបត្រ :',
+        value: 'CS000064925',
+        labelWidth: 45,
+        fontFamily: '"Noto Sans Khmer", sans-serif',
+        fontSize: 12,
+        labelFontWeight: 'bold',
+        textAlign: 'right',
+        dataBinding: { field: 'doc.number', type: 'string' }
+      }
+    },
+    {
+      type: BLOCK_TYPES.FIELD_ROW,
+      xPercent: 0.60,
+      yPercent: 0.07,
+      widthPercent: 0.35,
+      heightPercent: 0.03,
+      defaultProps: {
+        label: 'ថ្ងៃទី :',
+        value: '23/06/2026',
+        labelWidth: 45,
+        fontFamily: '"Noto Sans Khmer", sans-serif',
+        fontSize: 12,
+        labelFontWeight: 'bold',
+        textAlign: 'right',
+        dataBinding: { field: 'doc.date', type: 'date', format: { dateFormat: 'DD/MM/YYYY' } }
+      }
+    },
+    {
+      type: BLOCK_TYPES.FIELD_ROW,
+      xPercent: 0.60,
+      yPercent: 0.10,
+      widthPercent: 0.35,
+      heightPercent: 0.03,
+      defaultProps: {
+        label: 'សំគាល់ :',
+        value: '',
+        labelWidth: 45,
+        fontFamily: '"Noto Sans Khmer", sans-serif',
+        fontSize: 12,
+        labelFontWeight: 'bold',
+        textAlign: 'right',
+        dataBinding: { field: 'doc.notes', type: 'string' }
+      }
+    },
+
+    // Item Table
+    {
+      type: BLOCK_TYPES.ITEM_TABLE,
+      xPercent: 0.05,
+      yPercent: 0.18,
+      widthPercent: 0.90,
+      heightPercent: 0.36,
+      defaultProps: {
+        emptyRows: 9,
+        showHeader: true,
+        showBorders: true,
+        showRowNumbers: false,
+        headerBg: '#ffffff',
+        headerColor: '#000000',
+        bodyFontSize: 11,
+        fontFamily: '"Noto Sans Khmer", sans-serif',
+        columns: [
+          { id: 'no', label: 'ល.រ', width: 8, visible: true },
+          { id: 'description', label: 'តារាងមុខទំនិញ', width: 50, visible: true },
+          { id: 'qty', label: 'បរិមាណ', width: 14, visible: true },
+          { id: 'unit_price', label: 'តម្លៃ', width: 14, visible: true },
+          { id: 'total', label: 'តម្លៃសរុប', width: 14, visible: true }
+        ],
+        dataBinding: { field: 'items', type: 'table' }
+      }
+    },
+
+    // Terms & Disclaimer (Bottom Left)
+    {
+      type: BLOCK_TYPES.TEXT,
+      xPercent: 0.05,
+      yPercent: 0.56,
+      widthPercent: 0.45,
+      heightPercent: 0.12,
+      defaultProps: {
+        content: 'សូមពិនិត្យទំនិញឱ្យបានត្រឹមត្រូវ និងគ្រប់ចំនួនមុនឡានចេញទៅ បើមានករណីបាត់បង់ ឬបែកបាក់យើងខ្ញុំមិនទទួលខុសត្រូវទេ',
+        fontFamily: '"Noto Sans Khmer", sans-serif',
+        fontSize: 11,
+        color: '#000000',
+        lineHeight: 1.6,
+        textAlign: 'left'
+      }
+    },
+
+    // Totals Grid Border Box (Bottom Right)
+    {
+      type: BLOCK_TYPES.FIELD_ROW,
+      xPercent: 0.55,
+      yPercent: 0.56,
+      widthPercent: 0.40,
+      heightPercent: 0.035,
+      defaultProps: {
+        label: 'សរុបទឹកប្រាក់',
+        value: '388.94 $',
+        labelWidth: 60,
+        fontFamily: '"Noto Sans Khmer", sans-serif',
+        fontSize: 12,
+        labelFontWeight: 'bold',
+        textAlign: 'right',
+        borderWidth: 1,
+        borderColor: '#000000',
+        borderStyle: 'solid',
+        paddingTop: 4,
+        paddingBottom: 4,
+        paddingLeft: 6,
+        paddingRight: 6,
+        dataBinding: { field: 'totals.total', type: 'currency' }
+      }
+    },
+    {
+      type: BLOCK_TYPES.FIELD_ROW,
+      xPercent: 0.55,
+      yPercent: 0.595,
+      widthPercent: 0.40,
+      heightPercent: 0.035,
+      defaultProps: {
+        label: 'អត្រាប្តូរប្រាក់',
+        value: '4,053 ៛',
+        labelWidth: 60,
+        fontFamily: '"Noto Sans Khmer", sans-serif',
+        fontSize: 12,
+        labelFontWeight: 'bold',
+        textAlign: 'right',
+        borderWidth: 1,
+        borderColor: '#000000',
+        borderStyle: 'solid',
+        paddingTop: 4,
+        paddingBottom: 4,
+        paddingLeft: 6,
+        paddingRight: 6,
+        dataBinding: { field: 'totals.exchange_rate', type: 'string' }
+      }
+    },
+    {
+      type: BLOCK_TYPES.FIELD_ROW,
+      xPercent: 0.55,
+      yPercent: 0.63,
+      widthPercent: 0.40,
+      heightPercent: 0.035,
+      defaultProps: {
+        label: 'សរុបប្រាក់រៀល',
+        value: '1,576,400 ៛',
+        labelWidth: 60,
+        fontFamily: '"Noto Sans Khmer", sans-serif',
+        fontSize: 12,
+        labelFontWeight: 'bold',
+        textAlign: 'right',
+        borderWidth: 1,
+        borderColor: '#000000',
+        borderStyle: 'solid',
+        paddingTop: 4,
+        paddingBottom: 4,
+        paddingLeft: 6,
+        paddingRight: 6,
+        dataBinding: { field: 'totals.total_riel', type: 'string' }
+      }
+    },
+
+    // Footer Signatures
+    {
+      type: BLOCK_TYPES.SIGNATURE_LINE,
+      xPercent: 0.05,
+      yPercent: 0.72,
+      widthPercent: 0.26,
+      heightPercent: 0.12,
+      defaultProps: {
+        label: 'ឈ្មោះ និង ហត្ថលេខា អ្នកចេញចុង',
+        showDate: false,
+        fontFamily: '"Noto Sans Khmer", sans-serif',
+        fontSize: 12,
+        textAlign: 'center',
+        color: '#000000'
+      }
+    },
+    {
+      type: BLOCK_TYPES.SIGNATURE_LINE,
+      xPercent: 0.37,
+      yPercent: 0.72,
+      widthPercent: 0.26,
+      heightPercent: 0.12,
+      defaultProps: {
+        label: 'ឈ្មោះ និង ហត្ថលេខា អ្នកដឹក',
+        showDate: false,
+        fontFamily: '"Noto Sans Khmer", sans-serif',
+        fontSize: 12,
+        textAlign: 'center',
+        color: '#000000'
+      }
+    },
+    {
+      type: BLOCK_TYPES.SIGNATURE_LINE,
+      xPercent: 0.69,
+      yPercent: 0.72,
+      widthPercent: 0.26,
+      heightPercent: 0.12,
+      defaultProps: {
+        label: 'ឈ្មោះ និង ហត្ថលេខា អ្នកទិញ',
+        showDate: false,
+        fontFamily: '"Noto Sans Khmer", sans-serif',
+        fontSize: 12,
+        textAlign: 'center',
+        color: '#000000'
       }
     }
   ],

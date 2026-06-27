@@ -21,7 +21,7 @@ npm run preview
 ## Features
 
 - **Drag & drop canvas** — position, resize, rotate any block freely
-- **30+ block types** — text, images, tables, totals, signatures, QR codes, barcodes, dividers, watermarks, and more
+- **25+ block types** — text, images, tables, signatures, QR codes, barcodes, dividers, watermarks, and more
 - **Paper formats** — A4, A5, 58mm receipt, 80mm receipt, portrait or landscape
 - **Per-block styling** — font, color, border, shadow, padding, opacity, rotation
 - **Rich text editing** — bold/italic/underline with inline toolbar and keyboard shortcuts

@@ -23,6 +23,7 @@ import {
     Printer,
     Eye,
     EyeOff,
+    Grid3x3,
 } from "@lucide/vue";
 
 import ConfirmModal from "../common/ConfirmModal.vue";
@@ -306,6 +307,28 @@ function handleResetToDefault() {
         >
             <RefreshCw :size="13" />
             Reset
+        </button>
+
+        <!-- Ruler -->
+        <button
+            class="btn btn-ghost"
+            :class="{ active: canvasStore.showRulers }"
+            data-tooltip="Toggle Ruler"
+            @click="canvasStore.showRulers = !canvasStore.showRulers"
+        >
+            <Layout :size="13" />
+            Ruler
+        </button>
+
+        <!-- Grid -->
+        <button
+            class="btn btn-ghost"
+            :class="{ active: canvasStore.showGrid }"
+            data-tooltip="Toggle Grid"
+            @click="canvasStore.showGrid = !canvasStore.showGrid"
+        >
+            <Grid3x3 :size="13" />
+            Grid
         </button>
 
         <!-- Preview -->

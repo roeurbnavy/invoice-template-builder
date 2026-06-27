@@ -754,7 +754,19 @@ function moveField(fromIndex, toIndex) {
         <!-- ─── WATERMARK BLOCK ─── -->
         <div v-else-if="block.type === 'watermark'" class="field-group">
             <div class="field-label">Watermark Settings</div>
-            <p style="font-size:11px;color:var(--color-panel-muted);margin:0">Edit watermark text directly on the canvas.</p>
+            <p style="font-size:11px;color:var(--color-panel-muted);margin:0 0 8px">Edit watermark text directly on the canvas.</p>
+            <div class="field-label">Rotation (degrees)</div>
+            <input
+                type="range"
+                min="-90"
+                max="90"
+                step="1"
+                :value="block.rotation ?? -45"
+                class="range-input"
+                @input="blockStore.updateBlock(block.id, { rotation: parseFloat($event.target.value) || 0 })"
+                @change="commitHistory"
+            />
+            <div class="range-value">{{ block.rotation ?? -45 }}°</div>
         </div>
 
         <!-- ─── COMPANY INFO ─── -->
@@ -1089,152 +1101,6 @@ function moveField(fromIndex, toIndex) {
             </div>
         </div>
 
-        <!-- ─── TOTALS BLOCK ─── -->
-
-        <div v-else-if="block.type === 'totals_block'" class="field-group">
-            <div class="field-label">Totals Block Settings</div>
-
-            <!-- Select Currency -->
-            <div class="field-single" style="margin-bottom: 12px">
-                <label
-                    style="
-                        font-size: 10px;
-                        color: var(--color-panel-muted);
-                        display: block;
-                        margin-bottom: 4px;
-                    "
-                    >Currency</label
-                >
-                <select
-                    :value="block.currency ?? settingsStore.currency"
-                    class="inp"
-                    @change="handleInput('currency', $event, false)"
-                    @blur="commitHistory"
-                >
-                    <option
-                        v-for="c in settingsStore.currencies"
-                        :key="c.code"
-                        :value="c.code"
-                    >
-                        {{ c.code }} ({{ c.symbol }})
-                    </option>
-                </select>
-            </div>
-
-            <!-- Financial Toggles -->
-            <div
-                style="
-                    display: flex;
-                    flex-direction: column;
-                    gap: 10px;
-                    margin-bottom: 12px;
-                "
-            >
-                <div
-                    v-for="field in [
-                        'Subtotal',
-                        'Discount',
-                        'Tax',
-                        'Total',
-                        'Balance',
-                    ]"
-                    :key="field"
-                    style="
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                    "
-                >
-                    <span
-                        >Show
-                        {{ field === "Balance" ? "Balance Due" : field }}</span
-                    >
-                    <label class="toggle">
-                        <input
-                            type="checkbox"
-                            :checked="block[`show${field}`] !== false"
-                            @change="handleCheckbox(`show${field}`, $event)"
-                        />
-                        <span class="toggle-track" />
-                    </label>
-                </div>
-            </div>
-
-            <!-- Tax & Discount Configuration -->
-            <div class="divider" />
-            <div class="field-row" style="margin-top: 8px">
-                <div>
-                    <label
-                        style="
-                            font-size: 10px;
-                            color: var(--color-panel-muted);
-                            display: block;
-                            margin-bottom: 2px;
-                        "
-                        >Tax Rate</label
-                    >
-                    <div class="field-unit">
-                        <input
-                            type="number"
-                            :value="block.taxRate ?? 10"
-                            class="inp"
-                            min="0"
-                            max="100"
-                            @input="handleInput('taxRate', $event)"
-                            @blur="commitHistory"
-                        />
-                        <span class="field-unit-label">%</span>
-                    </div>
-                </div>
-                <div>
-                    <label
-                        style="
-                            font-size: 10px;
-                            color: var(--color-panel-muted);
-                            display: block;
-                            margin-bottom: 2px;
-                        "
-                        >Discount Type</label
-                    >
-                    <select
-                        :value="block.discountType ?? 'fixed'"
-                        class="inp"
-                        @change="handleInput('discountType', $event, false)"
-                        @blur="commitHistory"
-                    >
-                        <option value="fixed">Fixed Amount</option>
-                        <option value="percent">Percentage</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="field-single" style="margin-top: 8px">
-                <label
-                    style="
-                        font-size: 10px;
-                        color: var(--color-panel-muted);
-                        display: block;
-                        margin-bottom: 2px;
-                    "
-                    >Discount Value</label
-                >
-                <div class="field-unit">
-                    <input
-                        type="number"
-                        :value="block.discountValue ?? 0"
-                        class="inp"
-                        min="0"
-                        @input="handleInput('discountValue', $event)"
-                        @blur="commitHistory"
-                    />
-                    <span class="field-unit-label">{{
-                        block.discountType === "percent"
-                            ? "%"
-                            : (block.currency ?? settingsStore.currency)
-                    }}</span>
-                </div>
-            </div>
-        </div>
 
         <!-- ─── ITEM TABLE BLOCK ─── -->
         <div v-else-if="block.type === 'item_table'" class="field-group">
@@ -2232,48 +2098,6 @@ function moveField(fromIndex, toIndex) {
             </div>
         </div>
 
-        <!-- ─── DOCUMENT HEADER BLOCK ─── -->
-        <div v-else-if="block.type === 'document_header'" class="field-group">
-            <div class="field-label">Document Header</div>
-            <p style="font-size:11px;color:var(--color-panel-muted);margin-bottom:10px">Edit document title, number, dates, and reference directly on the canvas.</p>
-            <div class="divider" />
-            <div class="field-label" style="margin-top: 8px">Show / Hide Fields</div>
-            <div style="display: flex; flex-direction: column; gap: 10px">
-                <div
-                    v-for="row in [
-                        { key: 'showNumber', label: 'Document Number' },
-                        { key: 'showDate', label: 'Issue Date' },
-                        { key: 'showDueDate', label: 'Due Date' },
-                        { key: 'showRef', label: 'Reference' },
-                    ]"
-                    :key="row.key"
-                    style="display:flex;align-items:center;justify-content:space-between"
-                >
-                    <span>{{ row.label }}</span>
-                    <label class="toggle">
-                        <input
-                            type="checkbox"
-                            :checked="block[row.key] !== false"
-                            @change="handleCheckbox(row.key, $event)"
-                        />
-                        <span class="toggle-track" />
-                    </label>
-                </div>
-            </div>
-        </div>
-
-        <!-- ─── RECEIPT HEADER ─── -->
-        <div v-else-if="block.type === 'receipt_header'" class="field-group">
-            <div class="field-label">Receipt Header</div>
-            <p style="font-size:11px;color:var(--color-panel-muted);margin:0">Edit store name, address, and phone directly on the canvas.</p>
-        </div>
-
-        <!-- ─── RECEIPT FOOTER ─── -->
-        <div v-else-if="block.type === 'receipt_footer'" class="field-group">
-            <div class="field-label">Receipt Footer</div>
-            <p style="font-size:11px;color:var(--color-panel-muted);margin:0">Edit thank you message and policy note directly on the canvas.</p>
-        </div>
-
         <!-- ─── CHECKBOXES ROW ─── -->
         <div v-else-if="block.type === 'checkboxes_row'" class="field-group">
             <div class="field-label">Checkbox Options</div>
@@ -2321,6 +2145,79 @@ function moveField(fromIndex, toIndex) {
                     + Add Option
                 </button>
             </div>
+        </div>
+
+        <!-- ─── BARCODE ─── -->
+        <div v-else-if="block.type === 'barcode'" class="field-group">
+            <div class="field-label">Barcode Settings</div>
+
+            <div class="field-label" style="margin-top:8px">Format</div>
+            <select
+                :value="block.barcodeFormat || 'CODE128'"
+                class="field-select"
+                @change="blockStore.updateBlock(block.id, { barcodeFormat: $event.target.value }); commitHistory()"
+            >
+                <option value="CODE128">Code 128</option>
+                <option value="EAN13">EAN-13</option>
+                <option value="UPCA">UPC-A</option>
+                <option value="CODE39">Code 39</option>
+                <option value="ITF">Interleaved 2 of 5</option>
+                <option value="CODABAR">Codabar</option>
+            </select>
+
+            <div class="field-label" style="margin-top:8px">Content</div>
+            <input
+                type="text"
+                :value="block.content ?? ''"
+                class="field-input"
+                placeholder="Data to encode"
+                @input="blockStore.updateBlock(block.id, { content: $event.target.value })"
+                @change="commitHistory"
+            />
+
+            <div class="field-label" style="margin-top:8px">Bar Width (px)</div>
+            <input
+                type="number"
+                min="1"
+                max="10"
+                step="0.5"
+                :value="block.barcodeWidth ?? 2"
+                class="field-input"
+                @change="blockStore.updateBlock(block.id, { barcodeWidth: parseFloat($event.target.value) || 2 }); commitHistory()"
+            />
+
+            <div class="field-label" style="margin-top:8px">Bar Height (px)</div>
+            <input
+                type="number"
+                min="10"
+                max="300"
+                step="5"
+                :value="block.barcodeHeight ?? 50"
+                class="field-input"
+                @change="blockStore.updateBlock(block.id, { barcodeHeight: parseFloat($event.target.value) || 50 }); commitHistory()"
+            />
+
+            <div class="field-label" style="margin-top:8px">Show Text</div>
+            <label class="toggle">
+                <input
+                    type="checkbox"
+                    :checked="block.showBarcodeText !== false"
+                    @change="blockStore.updateBlock(block.id, { showBarcodeText: $event.target.checked }); commitHistory()"
+                />
+                <span class="toggle-track" />
+            </label>
+
+            <div v-if="block.showBarcodeText !== false" class="field-label" style="margin-top:8px">Text Font Size</div>
+            <input
+                v-if="block.showBarcodeText !== false"
+                type="number"
+                min="6"
+                max="24"
+                step="1"
+                :value="block.barcodeFontSize ?? 12"
+                class="field-input"
+                @change="blockStore.updateBlock(block.id, { barcodeFontSize: parseFloat($event.target.value) || 12 }); commitHistory()"
+            />
         </div>
 
         <!-- ─── STAMP BOX ─── -->

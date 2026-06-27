@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { getBorderStyle } from '../../utils/blockDefaults.js'
 const props = defineProps({ block: { type: Object, required: true } })
 
 const shapeStyle = computed(() => {
@@ -8,7 +9,7 @@ const shapeStyle = computed(() => {
     width: '100%',
     height: '100%',
     backgroundColor: b.backgroundColor ?? '#e0e0e0',
-    border: b.borderWidth ? `${b.borderWidth}px ${b.borderStyle ?? 'solid'} ${b.borderColor ?? '#aaa'}` : 'none',
+    ...getBorderStyle(b),
     boxSizing: 'border-box',
   }
   if (b.shapeType === 'circle') {

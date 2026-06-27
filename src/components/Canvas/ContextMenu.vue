@@ -1,7 +1,7 @@
 <script setup>
 import { useBlockStore } from '../../stores/blocks.js'
 import { useHistoryStore } from '../../stores/history.js'
-import { Copy, Trash2, Lock, ArrowUp, ArrowDown, ChevronsUp, ChevronsDown, Star } from '@lucide/vue'
+import { Copy, Trash2, Lock, ArrowUp, ArrowDown, ChevronsUp, ChevronsDown, Star, Layers } from '@lucide/vue'
 import { onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
@@ -60,6 +60,18 @@ function sendToBack() {
   emit('close')
 }
 
+function group() {
+  historyStore.push(getSnapshot())
+  blockStore.groupSelected()
+  emit('close')
+}
+
+function ungroup() {
+  historyStore.push(getSnapshot())
+  blockStore.ungroupSelected()
+  emit('close')
+}
+
 function closeOnOutside(e) {
   emit('close')
 }
@@ -76,6 +88,13 @@ onUnmounted(() => window.removeEventListener('click', closeOnOutside))
     :style="{ top: `${y}px`, left: `${x}px` }"
     @click.stop
   >
+    <div v-if="blockStore.selectedIds.length >= 2" class="context-menu-item" @click="group">
+      <Layers :size="13" /> Group
+    </div>
+    <div v-if="blockStore.selectedIds.length === 1 && blockStore.selectedBlock?.childIds?.length" class="context-menu-item" @click="ungroup">
+      <Layers :size="13" /> Ungroup
+    </div>
+    <div v-if="blockStore.selectedIds.length >= 2 || (blockStore.selectedIds.length === 1 && blockStore.selectedBlock?.childIds?.length)" class="context-menu-separator" />
     <div class="context-menu-item" @click="duplicate">
       <Copy :size="13" /> Duplicate
     </div>

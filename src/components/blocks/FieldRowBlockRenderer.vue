@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useBlockStore } from "../../stores/blocks.js";
 import { useCanvasStore } from "../../stores/canvas.js";
 import { resolveBlockBinding } from "../../utils/variableResolver.js";
+import { getBorderStyle } from "../../utils/blockDefaults.js";
 
 const props = defineProps({
     block: { type: Object, required: true },
@@ -17,18 +18,25 @@ const displayValue = computed(() => {
     if (binding !== null) return String(binding);
     return props.block.value ?? "";
 });
+
+const blockStyle = computed(() => ({
+    fontFamily: props.block.fontFamily ?? 'inherit',
+    fontSize: `${props.block.fontSize ?? 13}px`,
+    color: props.block.color ?? '#000',
+    backgroundColor: props.block.backgroundColor ?? 'transparent',
+    ...getBorderStyle(props.block),
+    borderRadius: `${props.block.borderRadius ?? 0}px`,
+}));
 </script>
 
 <template>
     <div
         :style="{
+            ...blockStyle,
             width: '100%',
             height: '100%',
             display: 'flex',
             alignItems: 'center',
-            fontFamily: block.fontFamily ?? 'inherit',
-            fontSize: `${block.fontSize ?? 13}px`,
-            color: block.color ?? '#000',
             padding: '2px 4px',
             boxSizing: 'border-box',
             overflow: 'hidden',

@@ -22,7 +22,7 @@ export const useCanvasStore = defineStore("canvas", () => {
   const orientation = ref(DEFAULT_ORIENTATION);
 
   // UI toggles
-  const showRulers = ref(true);
+  const showRulers = ref(false);
   const showGrid = ref(false);
   const snapToGrid = ref(false);
   const gridSize = ref(10);

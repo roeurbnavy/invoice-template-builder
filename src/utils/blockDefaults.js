@@ -11,6 +11,10 @@ const BASE = {
   // Style
   backgroundColor: "transparent",
   borderWidth: 0,
+  borderTopWidth: undefined,
+  borderRightWidth: undefined,
+  borderBottomWidth: undefined,
+  borderLeftWidth: undefined,
   borderColor: "#000000",
   borderStyle: "solid",
   borderRadius: 0,
@@ -107,6 +111,7 @@ export const BLOCK_DEFAULTS = {
     borderWidth: 1,
     borderColor: "#cccccc",
     lockChildren: false,
+    childIds: [],
   },
 
   [BLOCK_TYPES.FIELD_ROW]: {
@@ -170,23 +175,6 @@ export const BLOCK_DEFAULTS = {
     items: [],
   },
 
-  [BLOCK_TYPES.TOTALS_BLOCK]: {
-    ...BASE,
-    width: 260,
-    height: 140,
-    showSubtotal: true,
-    showDiscount: true,
-    showTax: true,
-    showTotal: true,
-    showBalance: false,
-    taxRate: 10,
-    discountType: "fixed",
-    discountValue: 0,
-    currency: "USD",
-    ...TEXT_STYLE,
-    fontSize: 13,
-  },
-
   [BLOCK_TYPES.SIGNATURE_LINE]: {
     ...BASE,
     width: 200,
@@ -231,17 +219,6 @@ export const BLOCK_DEFAULTS = {
     clientTaxId: "",
   },
 
-  [BLOCK_TYPES.NOTES]: {
-    ...BASE,
-    width: 300,
-    height: 80,
-    content: "{{invoice.notes}}",
-    label: "Notes",
-    ...TEXT_STYLE,
-    fontSize: 12,
-    color: "#555555",
-  },
-
   [BLOCK_TYPES.PAYMENT_QR]: {
     ...BASE,
     width: 120,
@@ -281,24 +258,6 @@ export const BLOCK_DEFAULTS = {
     color: "rgba(200,200,200,0.3)",
     rotation: -45,
     textAlign: "center",
-  },
-
-  [BLOCK_TYPES.DOCUMENT_HEADER]: {
-    ...BASE,
-    width: 260,
-    height: 130,
-    title: "INVOICE",
-    docNumber: "INV-0001",
-    docDate: "",
-    dueDate: "",
-    docRef: "",
-    showNumber: true,
-    showDate: true,
-    showDueDate: true,
-    showRef: false,
-    titleSize: 24,
-    ...TEXT_STYLE,
-    titleColor: "#1a1a2e",
   },
 
   [BLOCK_TYPES.CHECKBOXES_ROW]: {
@@ -343,28 +302,41 @@ export const BLOCK_DEFAULTS = {
     borderRadius: 4,
   },
 
-  [BLOCK_TYPES.RECEIPT_HEADER]: {
+  [BLOCK_TYPES.BARCODE]: {
     ...BASE,
-    width: 200,
+    width: 250,
     height: 80,
-    shopName: "",
-    address: "",
-    phone: "",
-    titleSize: 16,
-    ...TEXT_STYLE,
-    textAlign: "center",
-  },
-
-  [BLOCK_TYPES.RECEIPT_FOOTER]: {
-    ...BASE,
-    width: 200,
-    height: 60,
-    message: "",
-    policy: "",
+    content: "",
     ...TEXT_STYLE,
     fontSize: 11,
     textAlign: "center",
+    barcodeFormat: "CODE128",
+    barcodeHeight: 50,
+    barcodeWidth: 2,
+    showBarcodeText: true,
+    barcodeFontSize: 12,
+    barcodeMargin: 10,
   },
+
+  [BLOCK_TYPES.TABLE]: {
+    ...BASE,
+    width: 400,
+    height: 200,
+    columns: [
+      { id: "col1", label: "Column 1", width: 50, visible: true },
+    ],
+    showHeader: true,
+    showBorders: true,
+    borderColor: "#cccccc",
+  },
+
+  [BLOCK_TYPES.PAGE_BREAK]: {
+    ...BASE,
+    width: 600,
+    height: 16,
+    hideOnPrint: true,
+  },
+
 };
 
 /**
@@ -384,4 +356,29 @@ export function getBlockDefaults(type, overrides = {}) {
     type,
     name: type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
   };
+}
+
+/**
+ * Get border style object for a block, supporting per-side widths.
+ * Returns longhand border properties (borderTop, borderRight, etc.)
+ * Falls back to uniform borderWidth for each side if per-side value not set.
+ */
+export function getBorderStyle(block) {
+  const side = (s) => {
+    const val = block[`border${s}Width`]
+    return val !== undefined && val !== null ? val : (block.borderWidth ?? 0)
+  }
+  const style = block.borderStyle ?? 'solid'
+  const color = block.borderColor ?? '#000'
+  const top = side('Top')
+  const right = side('Right')
+  const bottom = side('Bottom')
+  const left = side('Left')
+  if (!top && !right && !bottom && !left) return { border: 'none' }
+  return {
+    borderTop: top ? `${top}px ${style} ${color}` : 'none',
+    borderRight: right ? `${right}px ${style} ${color}` : 'none',
+    borderBottom: bottom ? `${bottom}px ${style} ${color}` : 'none',
+    borderLeft: left ? `${left}px ${style} ${color}` : 'none',
+  }
 }

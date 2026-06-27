@@ -27,13 +27,14 @@ import NotesBlockRenderer from "../blocks/NotesBlockRenderer.vue";
 import BankDetailsBlockRenderer from "../blocks/BankDetailsBlockRenderer.vue";
 import WatermarkBlockRenderer from "../blocks/WatermarkBlockRenderer.vue";
 import GenericBlockRenderer from "../blocks/GenericBlockRenderer.vue";
-import DocumentHeaderBlockRenderer from "../blocks/DocumentHeaderBlockRenderer.vue";
 import CheckboxesRowBlockRenderer from "../blocks/CheckboxesRowBlockRenderer.vue";
 import StampBoxBlockRenderer from "../blocks/StampBoxBlockRenderer.vue";
 import CutLineBlockRenderer from "../blocks/CutLineBlockRenderer.vue";
 import CarbonCopyLabelBlockRenderer from "../blocks/CarbonCopyLabelBlockRenderer.vue";
-import ReceiptHeaderBlockRenderer from "../blocks/ReceiptHeaderBlockRenderer.vue";
-import ReceiptFooterBlockRenderer from "../blocks/ReceiptFooterBlockRenderer.vue";
+import BarcodeBlockRenderer from "../blocks/BarcodeBlockRenderer.vue";
+import TableBlockRenderer from "../blocks/TableBlockRenderer.vue";
+import PageBreakBlockRenderer from "../blocks/PageBreakBlockRenderer.vue";
+
 
 const RENDERERS = {
     text: TextBlockRenderer,
@@ -67,18 +68,16 @@ const RENDERERS = {
     watermark: WatermarkBlockRenderer,
     payment_qr: ImageBlockRenderer,
     // New renderers
-    document_header: DocumentHeaderBlockRenderer,
     checkboxes_row: CheckboxesRowBlockRenderer,
     stamp_box: StampBoxBlockRenderer,
     cut_line: CutLineBlockRenderer,
     carbon_copy_label: CarbonCopyLabelBlockRenderer,
-    receipt_header: ReceiptHeaderBlockRenderer,
-    receipt_footer: ReceiptFooterBlockRenderer,
-    // Existing types mapped to appropriate renderers
     page_number: TextBlockRenderer,
-    amount_in_words: TextBlockRenderer,
     balance_due: TotalsBlockRenderer,
     deposit_paid: TotalsBlockRenderer,
+    barcode: BarcodeBlockRenderer,
+    table: TableBlockRenderer,
+    page_break: PageBreakBlockRenderer,
 };
 
 const props = defineProps({
@@ -132,7 +131,7 @@ const blockStyle = computed(() => {
         opacity: b.opacity ?? 1,
         zIndex: b.zIndex ?? 0,
         userSelect: "none",
-        pointerEvents: b.hidden ? "none" : "auto",
+        pointerEvents: b.hidden ? "none" : ((props.block.childIds?.length ?? 0) > 0 ? "none" : "auto"),
         visibility: b.hidden ? "hidden" : "visible",
         cursor: isEditing.value
             ? "default"
@@ -155,13 +154,21 @@ function onDblClick(e) {
     canvasStore.editingBlockId = props.block.id;
 }
 
+function getParentContainer() {
+    return blockStore.blocks.find(b => (b.childIds ?? []).includes(props.block.id));
+}
+
 function onMouseDown(e) {
     if (props.block.locked) return;
     if (e.button !== 0) return;
     e.stopPropagation();
 
+    // If this block is a child of a group, redirect to parent
+    const parent = getParentContainer();
+
     // Select logic
     if (e.shiftKey) {
+        if (parent) return;
         if (isSelected.value) {
             blockStore.selectBlocks(
                 blockStore.selectedIds.filter((id) => id !== props.block.id),
@@ -172,21 +179,23 @@ function onMouseDown(e) {
         return;
     }
 
-    if (isSelected.value && !isEditing.value) {
+    if (isSelected.value && !isEditing.value && !parent) {
         // Single click when already selected enters edit mode
         canvasStore.editingBlockId = props.block.id;
     }
 
-    if (!isSelected.value) {
-        blockStore.selectBlock(props.block.id);
+    const moveTarget = parent ?? props.block;
+
+    if (!isSelected.value || parent) {
+        blockStore.selectBlock(moveTarget.id);
     }
 
     moving.value = true;
     moveStart.value = {
         mouseX: e.clientX,
         mouseY: e.clientY,
-        blockX: props.block.x,
-        blockY: props.block.y,
+        blockX: moveTarget.x,
+        blockY: moveTarget.y,
     };
 
     const onMove = (me) => {
@@ -196,26 +205,39 @@ function onMouseDown(e) {
         const dy = (me.clientY - moveStart.value.mouseY) / z;
         const newX = Math.round(moveStart.value.blockX + dx);
         const newY = Math.round(moveStart.value.blockY + dy);
-        blockStore.updateBlock(props.block.id, { x: newX, y: newY });
+        const moveTarget = getParentContainer() ?? props.block;
+        blockStore.updateBlock(moveTarget.id, { x: newX, y: newY });
         // Also move other selected blocks
         if (isMultiSelected.value) {
             blockStore.selectedIds.forEach((id) => {
-                if (id === props.block.id) return;
+                if (id === moveTarget.id) return;
                 const b = blockStore.blocks.find((bl) => bl.id === id);
                 if (!b || b.locked) return;
                 blockStore.updateBlock(id, {
                     x: Math.round(
-                        b.x + dx - (props.block.x - moveStart.value.blockX),
+                        b.x + dx - (moveTarget.x - moveStart.value.blockX),
                     ),
                     y: Math.round(
-                        b.y + dy - (props.block.y - moveStart.value.blockY),
+                        b.y + dy - (moveTarget.y - moveStart.value.blockY),
                     ),
+                });
+            });
+        }
+        // Also move children when dragging a container group
+        const childIds = moveTarget.childIds ?? [];
+        if (childIds.length > 0) {
+            childIds.forEach((id) => {
+                const b = blockStore.blocks.find((bl) => bl.id === id);
+                if (!b || b.locked) return;
+                blockStore.updateBlock(id, {
+                    x: Math.round(b.x + dx - (moveTarget.x - moveStart.value.blockX)),
+                    y: Math.round(b.y + dy - (moveTarget.y - moveStart.value.blockY)),
                 });
             });
         }
         // Alignment guides
         const updated = blockStore.blocks.find(
-            (bl) => bl.id === props.block.id,
+            (bl) => bl.id === moveTarget.id,
         );
         if (updated)
             computeAlignmentGuides(
@@ -393,6 +415,11 @@ function onResizeStart(e, handle) {
     e.preventDefault();
     resizing.value = true;
     resizeHandle.value = handle;
+    const initChildIds = props.block.childIds ?? [];
+    const initChildren = initChildIds.map(id => {
+        const b = blockStore.blocks.find(bl => bl.id === id);
+        return b ? { id, x: b.x, y: b.y, w: b.width, h: b.height } : null;
+    }).filter(Boolean);
     resizeStart.value = {
         mouseX: e.clientX,
         mouseY: e.clientY,
@@ -400,6 +427,7 @@ function onResizeStart(e, handle) {
         y: props.block.y,
         w: props.block.width,
         h: props.block.height,
+        children: initChildren,
     };
 
     const onMove = (me) => {
@@ -407,23 +435,40 @@ function onResizeStart(e, handle) {
         const z = canvasStore.zoom;
         const dx = (me.clientX - resizeStart.value.mouseX) / z;
         const dy = (me.clientY - resizeStart.value.mouseY) / z;
-        let { x, y, w, h } = resizeStart.value;
+        let { x: oldX, y: oldY, w: oldW, h: oldH } = resizeStart.value;
+        let newX = oldX, newY = oldY, newW = oldW, newH = oldH;
         const MIN = 20;
 
-        if (handle.includes("e")) w = Math.max(MIN, Math.round(w + dx));
-        if (handle.includes("s")) h = Math.max(MIN, Math.round(h + dy));
+        if (handle.includes("e")) newW = Math.max(MIN, Math.round(oldW + dx));
+        if (handle.includes("s")) newH = Math.max(MIN, Math.round(oldH + dy));
         if (handle.includes("w")) {
-            const newW = Math.max(MIN, Math.round(w - dx));
-            x = Math.round(x + w - newW);
-            w = newW;
+            const nw = Math.max(MIN, Math.round(oldW - dx));
+            newX = Math.round(oldX + oldW - nw);
+            newW = nw;
         }
         if (handle.includes("n")) {
-            const newH = Math.max(MIN, Math.round(h - dy));
-            y = Math.round(y + h - newH);
-            h = newH;
+            const nh = Math.max(MIN, Math.round(oldH - dy));
+            newY = Math.round(oldY + oldH - nh);
+            newH = nh;
         }
 
-        blockStore.updateBlock(props.block.id, { x, y, width: w, height: h });
+        blockStore.updateBlock(props.block.id, { x: newX, y: newY, width: newW, height: newH });
+
+        // Scale children proportionally from initial snapshot
+        const initChildren = resizeStart.value.children ?? [];
+        if (initChildren.length > 0) {
+            const sx = newW / oldW;
+            const sy = newH / oldH;
+            initChildren.forEach((ch) => {
+                if (!ch) return;
+                blockStore.updateBlock(ch.id, {
+                    x: Math.round(newX + (ch.x - oldX) * sx),
+                    y: Math.round(newY + (ch.y - oldY) * sy),
+                    width: Math.max(MIN, Math.round((ch.w ?? 100) * sx)),
+                    height: Math.max(MIN, Math.round((ch.h ?? 50) * sy)),
+                });
+            });
+        }
     };
 
     const onUp = () => {

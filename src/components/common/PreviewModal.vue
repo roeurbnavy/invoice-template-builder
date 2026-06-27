@@ -23,13 +23,14 @@ import NotesBlockRenderer from "../blocks/NotesBlockRenderer.vue";
 import BankDetailsBlockRenderer from "../blocks/BankDetailsBlockRenderer.vue";
 import WatermarkBlockRenderer from "../blocks/WatermarkBlockRenderer.vue";
 import GenericBlockRenderer from "../blocks/GenericBlockRenderer.vue";
-import DocumentHeaderBlockRenderer from "../blocks/DocumentHeaderBlockRenderer.vue";
 import CheckboxesRowBlockRenderer from "../blocks/CheckboxesRowBlockRenderer.vue";
 import StampBoxBlockRenderer from "../blocks/StampBoxBlockRenderer.vue";
 import CutLineBlockRenderer from "../blocks/CutLineBlockRenderer.vue";
 import CarbonCopyLabelBlockRenderer from "../blocks/CarbonCopyLabelBlockRenderer.vue";
-import ReceiptHeaderBlockRenderer from "../blocks/ReceiptHeaderBlockRenderer.vue";
-import ReceiptFooterBlockRenderer from "../blocks/ReceiptFooterBlockRenderer.vue";
+import BarcodeBlockRenderer from "../blocks/BarcodeBlockRenderer.vue";
+import TableBlockRenderer from "../blocks/TableBlockRenderer.vue";
+import PageBreakBlockRenderer from "../blocks/PageBreakBlockRenderer.vue";
+
 
 const RENDERERS = {
     text: TextBlockRenderer,
@@ -62,17 +63,16 @@ const RENDERERS = {
     bank_details: BankDetailsBlockRenderer,
     watermark: WatermarkBlockRenderer,
     payment_qr: ImageBlockRenderer,
-    document_header: DocumentHeaderBlockRenderer,
     checkboxes_row: CheckboxesRowBlockRenderer,
     stamp_box: StampBoxBlockRenderer,
     cut_line: CutLineBlockRenderer,
     carbon_copy_label: CarbonCopyLabelBlockRenderer,
-    receipt_header: ReceiptHeaderBlockRenderer,
-    receipt_footer: ReceiptFooterBlockRenderer,
     page_number: TextBlockRenderer,
-    amount_in_words: TextBlockRenderer,
     balance_due: TotalsBlockRenderer,
     deposit_paid: TotalsBlockRenderer,
+    barcode: BarcodeBlockRenderer,
+    table: TableBlockRenderer,
+    page_break: PageBreakBlockRenderer,
 };
 
 const canvasStore = useCanvasStore();
