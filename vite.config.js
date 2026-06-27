@@ -14,4 +14,21 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    lib: {
+      entry: path.resolve(__dirname, 'src/index.js'),
+      name: 'InvoiceBuilder',
+      fileName: (format) => `invoice-builder.${format}.js`
+    },
+    rollupOptions: {
+      // Externalize dependencies that shouldn't be bundled
+      external: ['vue', 'pinia'],
+      output: {
+        globals: {
+          vue: 'Vue',
+          pinia: 'Pinia'
+        }
+      }
+    }
+  }
 })

@@ -2,21 +2,85 @@
 
 A visual drag-and-drop invoice and document template builder for the browser. Design professional invoices, receipts, quotes, purchase orders, and more — with live preview, data binding, and POS integration support.
 
-## Getting Started
+## Installation as an NPM Package (Host Integration)
+
+To use the Invoice Builder in another Vue 3 project (such as your POS frontend system):
+
+### 1. Install the Package
+Install it directly via a local relative file path from your parent POS project directory:
+```bash
+npm install ../Invoice_builder
+```
+
+### 2. Basic Usage (Designer Panel)
+Mount the visual drag-and-drop designer component:
+```vue
+<script setup>
+import { ref } from 'vue'
+import { InvoiceBuilder } from 'invoice-builder'
+import 'invoice-builder/style.css'
+
+const savedBlocks = ref([])
+
+function handleSave(schema) {
+  console.log('Saved template blocks layout:', schema.blocks)
+  // Store the schema in your backend database
+}
+</script>
+
+<template>
+  <InvoiceBuilder 
+    :initialBlocks="savedBlocks" 
+    @save="handleSave"
+  />
+</template>
+```
+
+### 3. Rendering Invoices (Preview & Print Sheets)
+Mount the read-only page renderer to print templates with real live POS transaction data:
+```vue
+<script setup>
+import { InvoiceRenderer } from 'invoice-builder'
+import 'invoice-builder/style.css'
+
+const savedBlocks = [] // Load the JSON blocks array from your database
+const livePosData = {
+  doc: { number: 'INV-2026-0044', date: '2026-06-28' },
+  customer: { name: 'Sokha Long', phone: '+855 12 345 678' },
+  items: [
+    { description: 'Premium Coffee Beans', qty: 2, unit_price: 15.00, total: 30.00 }
+  ]
+}
+</script>
+
+<template>
+  <InvoiceRenderer
+    :blocks="savedBlocks"
+    :data="livePosData"
+    formatId="A4"
+    orientation="portrait"
+  />
+</template>
+```
+
+---
+
+## Local Development (Builder Workspace)
+To run the builder app workspace locally to test or add features:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the URL shown in the terminal (usually `http://localhost:5173`).
+Open the URL in the browser (usually `http://localhost:5173`).
 
-## Build for Production
+## Compile Package Bundle
 
 ```bash
 npm run build
-npm run preview
 ```
+This builds the library into `/dist` output files (`invoice-builder.es.js` and `invoice-builder.umd.js`).
 
 ## Features
 

@@ -1,8 +1,19 @@
 {
   "name": "invoice-builder",
-  "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "main": "./dist/invoice-builder.umd.js",
+  "module": "./dist/invoice-builder.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/invoice-builder.es.js",
+      "require": "./dist/invoice-builder.umd.js"
+    },
+    "./style.css": "./dist/invoice-builder.css"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -16,12 +27,16 @@
     "html2canvas": "^1.4.1",
     "jsbarcode": "^3.12.3",
     "jspdf": "^4.2.1",
-    "pinia": "^3.0.4",
-    "tailwindcss": "^4.3.1",
-    "vue": "^3.5.34"
+    "tailwindcss": "^4.3.1"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.34",
+    "pinia": "^3.0.4"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.6",
-    "vite": "^8.0.12"
+    "pinia": "^3.0.4",
+    "vite": "^8.0.12",
+    "vue": "^3.5.34"
   }
 }
