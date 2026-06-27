@@ -4,6 +4,7 @@ import { resolveBlockBinding, getFieldLabel } from "./utils/variableResolver.js"
 import { useSettingsStore } from "./stores/settings.js";
 import { useBlockStore } from "./stores/blocks.js";
 import { useCanvasStore } from "./stores/canvas.js";
+import { useTemplateStore } from "./stores/template.js";
 
 export {
   InvoiceBuilder,
@@ -12,5 +13,6 @@ export {
   getFieldLabel,
   useSettingsStore,
   useBlockStore,
-  useCanvasStore
+  useCanvasStore,
+  useTemplateStore
 };

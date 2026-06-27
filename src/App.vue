@@ -41,6 +41,7 @@ onMounted(() => {
   if (props.presets) blockStore.setDocumentPresets(props.presets);
   if (props.fonts) settingsStore.fonts = props.fonts;
   if (props.paperFormats) canvasStore.setPaperFormats(props.paperFormats);
+  if (props.initialName) templateStore.currentTemplateName = props.initialName;
 
   let loaded = false;
 
