@@ -36,13 +36,10 @@ const fieldsByGroup = computed(() => {
 
 const bindableFields = computed(() => {
     const type = props.block.type;
-    if (type === 'item_table' || type === 'table_builder') {
-        return schemaFields.value.filter(f => f.type === 'table');
-    }
     if (type === 'image') {
         return schemaFields.value.filter(f => f.type === 'image');
     }
-    return schemaFields.value.filter(f => f.type !== 'table');
+    return schemaFields.value;
 });
 
 const currentBinding = computed(() => {

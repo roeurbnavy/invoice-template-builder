@@ -1,5 +1,38 @@
 <script setup>
-import { computed } from "vue";
+import { computed, ref, onMounted } from "vue";
+
+const panelWidth = ref(320);
+
+onMounted(() => {
+    const saved = localStorage.getItem("inspector_panel_width");
+    if (saved) {
+        panelWidth.value = parseInt(saved, 10) || 320;
+    }
+});
+
+function startResize(e) {
+    e.preventDefault();
+    const startWidth = panelWidth.value;
+    const startX = e.clientX;
+
+    function doResize(moveEvent) {
+        const deltaX = moveEvent.clientX - startX;
+        panelWidth.value = Math.max(260, Math.min(600, startWidth - deltaX));
+    }
+
+    function stopResize() {
+        window.removeEventListener("mousemove", doResize);
+        window.removeEventListener("mouseup", stopResize);
+        localStorage.setItem("inspector_panel_width", panelWidth.value.toString());
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+    }
+
+    window.addEventListener("mousemove", doResize);
+    window.addEventListener("mouseup", stopResize);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+}
 import { useBlockStore } from "../../stores/blocks.js";
 import { useInspectorStore } from "../../stores/inspector.js";
 import { useHistoryStore } from "../../stores/history.js";
@@ -180,16 +213,34 @@ const formatBlockName = (type) => {
 <template>
     <aside
         class="panel"
-        style="
-            width: 320px;
-            border-left: 1px solid var(--color-panel-border);
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            overflow: hidden;
-            flex-shrink: 0;
-        "
+        :style="{
+            width: panelWidth + 'px',
+            position: 'relative',
+            borderLeft: '1px solid var(--color-panel-border)',
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            overflow: 'hidden',
+            flexShrink: 0,
+        }"
     >
+        <!-- Resize Handle -->
+        <div
+            class="inspector-resize-handle"
+            style="
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 4px;
+                cursor: col-resize;
+                z-index: 100;
+                transition: background-color 0.2s;
+            "
+            @mousedown="startResize"
+            @mouseover="$event.target.style.backgroundColor = 'rgba(0, 180, 216, 0.4)'"
+            @mouseleave="$event.target.style.backgroundColor = 'transparent'"
+        />
         <div class="panel-header">Inspector</div>
 
         <div

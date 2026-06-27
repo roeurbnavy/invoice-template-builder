@@ -24,17 +24,21 @@ function onColResizeStart(colId, event) {
 function onColResizeMove(event) {
   if (!resizingCol.value) return
   const dx = event.clientX - resizeStartX.value
-  // Get table element width for % calculation
-  const tableEl = document.querySelector('.invoice-table')
-  const tableWidth = tableEl?.offsetWidth ?? 500
-  const deltaPercent = (dx / tableWidth) * 100
-  const newWidth = Math.max(3, resizeStartWidth.value + deltaPercent)
   const columns = JSON.parse(JSON.stringify(props.block.columns || []))
   const col = columns.find(c => c.id === resizingCol.value)
-  if (col) {
+  if (!col) return
+  const unit = col.widthUnit ?? '%'
+  if (unit === '%') {
+    const tableEl = document.querySelector('.invoice-table')
+    const tableWidth = tableEl?.offsetWidth ?? 500
+    const deltaPercent = (dx / tableWidth) * 100
+    const newWidth = Math.max(3, resizeStartWidth.value + deltaPercent)
     col.width = Math.round(newWidth * 10) / 10
-    blockStore.updateBlock(props.block.id, { columns })
+  } else {
+    const newWidth = Math.max(10, resizeStartWidth.value + dx)
+    col.width = Math.round(newWidth)
   }
+  blockStore.updateBlock(props.block.id, { columns })
 }
 
 function onColResizeEnd() {
@@ -89,6 +93,86 @@ const visibleColumns = computed(() =>
     (props.block.columns ?? []).filter((c) => c.visible !== false),
 );
 
+const hasHeaderGroups = computed(() => {
+    return visibleColumns.value.some(col => col.group && col.group.trim() !== '');
+});
+
+const headerRow1 = computed(() => {
+    const cells = [];
+    const cols = visibleColumns.value;
+    let i = 0;
+    while (i < cols.length) {
+        const col = cols[i];
+        const group = col.group?.trim();
+        if (group) {
+            let count = 1;
+            while (i + count < cols.length && cols[i + count].group?.trim() === group) {
+                count++;
+            }
+            cells.push({
+                isGroup: true,
+                label: group,
+                rowspan: 1,
+                colspan: count,
+                columns: cols.slice(i, i + count),
+                style: {
+                    background: props.block.headerBg ?? '#f5f5f5',
+                    color: props.block.headerColor ?? '#333',
+                    fontWeight: props.block.headerFontWeight ?? 'bold',
+                    border: cellBorder(),
+                    textAlign: 'center',
+                    verticalAlign: 'middle',
+                    fontSize: `${props.block.headerFontSize ?? props.block.bodyFontSize ?? 12}px`,
+                }
+            });
+            i += count;
+        } else {
+            cells.push({
+                isGroup: false,
+                colId: col.id,
+                col: col,
+                label: col.label,
+                rowspan: 2,
+                colspan: 1,
+                style: {
+                    background: props.block.headerBg ?? '#f5f5f5',
+                    color: props.block.headerColor ?? '#333',
+                    fontWeight: props.block.headerFontWeight ?? 'bold',
+                    border: cellBorder(),
+                    textAlign: props.block.headerHAlign ?? align(col),
+                    verticalAlign: props.block.headerVAlign ?? 'middle',
+                    fontSize: `${props.block.headerFontSize ?? props.block.bodyFontSize ?? 12}px`,
+                }
+            });
+            i++;
+        }
+    }
+    return cells;
+});
+
+const headerRow2 = computed(() => {
+    const cells = [];
+    visibleColumns.value.forEach(col => {
+        if (col.group?.trim()) {
+            cells.push({
+                colId: col.id,
+                col: col,
+                label: col.label,
+                style: {
+                    background: props.block.headerBg ?? '#f5f5f5',
+                    color: props.block.headerColor ?? '#333',
+                    fontWeight: props.block.headerFontWeight ?? 'bold',
+                    border: cellBorder(),
+                    textAlign: props.block.headerHAlign ?? align(col),
+                    verticalAlign: props.block.headerVAlign ?? 'middle',
+                    fontSize: `${props.block.headerFontSize ?? props.block.bodyFontSize ?? 12}px`,
+                }
+            });
+        }
+    });
+    return cells;
+});
+
 const resolvedItems = computed(() => {
     const binding = resolveBlockBinding(props.block, null, canvasStore.previewMode);
     if (binding !== null && Array.isArray(binding)) {
@@ -109,7 +193,7 @@ const tableStyle = computed(() => ({
     fontFamily: props.block.fontFamily ?? "inherit",
     fontSize: `${props.block.bodyFontSize ?? 12}px`,
     boxSizing: "border-box",
-    layout: "fixed",
+    tableLayout: "fixed",
 }));
 
 const borderColor = computed(() => props.block.borderColor ?? "#e0e0e0");
@@ -121,7 +205,8 @@ function cellBorder() {
 }
 
 function emptyCellBorder() {
-    return props.block.showEmptyRowBorders !== false ? cellBorder() : "none";
+    const mode = props.block.emptyRowBordersMode ?? (props.block.showEmptyRowBorders === false ? 'none' : 'grid');
+    return mode === 'none' ? 'none' : cellBorder();
 }
 
 function align(col) {
@@ -159,8 +244,8 @@ function formatSubFieldVal(sub, item) {
 
 function subFieldStyle(sub, col) {
     return {
-        fontSize: sub.fontSize ? `${sub.fontSize}px` : undefined,
-        fontWeight: sub.bold ? 'bold' : (col.bold ? 'bold' : 'normal'),
+        fontSize: `${sub.fontSize ?? 10}px`,
+        fontWeight: sub.bold ? 'bold' : 'normal',
         color: sub.color ?? undefined,
         fontStyle: sub.fontStyle ?? 'normal',
         textDecoration: sub.textDecoration ?? undefined,
@@ -171,9 +256,15 @@ function subFieldStyle(sub, col) {
 }
 
 function getCellBorderStyles(r, colId, isDataRow) {
-    const defaultBorder = isDataRow ? cellBorder() : emptyCellBorder();
+    const dataMode = props.block.dataRowBordersMode ?? 'grid';
+    const emptyMode = props.block.emptyRowBordersMode ?? (props.block.showEmptyRowBorders === false ? 'none' : 'grid');
+    const mode = isDataRow ? dataMode : emptyMode;
+
     const cellBorders = props.block.cellBorders ?? {};
     const merge = getMergeForCell(r, colId);
+    let borders;
+    
+    const baseBorder = cellBorder();
     
     if (merge) {
         const allCols = props.block.columns ?? [];
@@ -202,16 +293,38 @@ function getCellBorderStyles(r, colId, isDataRow) {
             if (cellBorders[cellKey]?.right && cellBorders[cellKey].right !== 'default') rightVal = cellBorders[cellKey].right;
         }
         
-        const resolve = (val) => val === 'none' ? 'none' : (val === 'thin' ? `1px solid ${borderColor.value}` : (val === 'thick' ? `2px solid ${borderColor.value}` : (val === 'double' ? `3px double ${borderColor.value}` : defaultBorder)));
+        const resolve = (val) => val === 'none' ? 'none' : (val === 'thin' ? `1px solid ${borderColor.value}` : (val === 'thick' ? `2px solid ${borderColor.value}` : (val === 'double' ? `3px double ${borderColor.value}` : baseBorder)));
         
-        return { borderTop: resolve(topVal), borderBottom: resolve(bottomVal), borderLeft: resolve(leftVal), borderRight: resolve(rightVal) };
+        borders = { borderTop: resolve(topVal), borderBottom: resolve(bottomVal), borderLeft: resolve(leftVal), borderRight: resolve(rightVal) };
+    } else {
+        const override = cellBorders[`${r}:${colId}`];
+        if (!override) {
+            borders = { borderTop: baseBorder, borderBottom: baseBorder, borderLeft: baseBorder, borderRight: baseBorder };
+        } else {
+            const resolve = (val) => val === 'none' ? 'none' : (val === 'thin' ? `1px solid ${borderColor.value}` : (val === 'thick' ? `2px solid ${borderColor.value}` : (val === 'double' ? `3px double ${borderColor.value}` : baseBorder)));
+            borders = { borderTop: resolve(override.top), borderBottom: resolve(override.bottom), borderLeft: resolve(override.left), borderRight: resolve(override.right) };
+        }
     }
-    
-    const override = cellBorders[`${r}:${colId}`];
-    if (!override) return { borderTop: defaultBorder, borderBottom: defaultBorder, borderLeft: defaultBorder, borderRight: defaultBorder };
-    
-    const resolve = (val) => val === 'none' ? 'none' : (val === 'thin' ? `1px solid ${borderColor.value}` : (val === 'thick' ? `2px solid ${borderColor.value}` : (val === 'double' ? `3px double ${borderColor.value}` : defaultBorder)));
-    return { borderTop: resolve(override.top), borderBottom: resolve(override.bottom), borderLeft: resolve(override.left), borderRight: resolve(override.right) };
+
+    if (mode === 'none') {
+        borders.borderTop = 'none';
+        borders.borderBottom = 'none';
+        borders.borderLeft = 'none';
+        borders.borderRight = 'none';
+    } else if (mode === 'vertical') {
+        const isLastRow = (r === allRows.value.length - 1);
+        borders.borderTop = 'none';
+        borders.borderBottom = isLastRow ? baseBorder : 'none';
+        borders.borderLeft = baseBorder;
+        borders.borderRight = baseBorder;
+    } else if (mode === 'horizontal') {
+        borders.borderTop = baseBorder;
+        borders.borderBottom = baseBorder;
+        borders.borderLeft = 'none';
+        borders.borderRight = 'none';
+    }
+
+    return borders;
 }
 
 const emptyRows = computed(() => Array(Math.max(0, (props.block.emptyRows ?? 0) - items.value.length)).fill(null));
@@ -608,18 +721,53 @@ watch(editingSpecialRowId, (newId) => { if (newId) nextTick(() => document.query
 <template>
     <div style="width: 100%; overflow: visible">
         <table :style="tableStyle">
+            <colgroup>
+                <col v-for="col in visibleColumns" :key="col.id" :style="{ width: col.width ? `${col.width}${col.widthUnit ?? '%'}` : undefined }" />
+            </colgroup>
             <thead v-if="block.showHeader !== false">
-                <tr>
+                <template v-if="hasHeaderGroups">
+                    <tr>
+                        <th v-for="(cell, ci) in headerRow1" :key="'r1-' + ci" 
+                            :rowspan="cell.rowspan" 
+                            :colspan="cell.colspan"
+                            :style="cell.style"
+                            :class="!cell.isGroup ? 'header-cell-' + cell.colId : undefined"
+                            style="position: relative; white-space: nowrap; font-family: inherit;"
+                            @dblclick="!cell.isGroup ? editingHeaderColId = cell.colId : null"
+                        >
+                            <template v-if="!cell.isGroup">
+                                <input v-if="editingHeaderColId === cell.colId" :value="cell.col.label" class="inline-cell-input header-edit-input" :style="{ color: block.headerColor ?? '#333', background: 'white', fontWeight: block.headerFontWeight ?? 'bold' }" @input="updateColumnProp(cell.colId, 'label', $event.target.value)" @blur="editingHeaderColId = null; commitHistory()" @keydown.enter="editingHeaderColId = null; commitHistory()" @keydown.esc="editingHeaderColId = null" />
+                                <span v-else>{{ cell.label }}</span>
+                                <div class="col-resizer" @mousedown.stop="onColResizeStart(cell.colId, $event)"></div>
+                            </template>
+                            <template v-else>
+                                <span>{{ cell.label }}</span>
+                            </template>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th v-for="(cell, ci) in headerRow2" :key="'r2-' + ci"
+                            :style="cell.style"
+                            :class="'header-cell-' + cell.colId"
+                            style="position: relative; white-space: nowrap; font-family: inherit;"
+                            @dblclick="editingHeaderColId = cell.colId"
+                        >
+                            <input v-if="editingHeaderColId === cell.colId" :value="cell.col.label" class="inline-cell-input header-edit-input" :style="{ color: block.headerColor ?? '#333', background: 'white', fontWeight: block.headerFontWeight ?? 'bold' }" @input="updateColumnProp(cell.colId, 'label', $event.target.value)" @blur="editingHeaderColId = null; commitHistory()" @keydown.enter="editingHeaderColId = null; commitHistory()" @keydown.esc="editingHeaderColId = null" />
+                            <span v-else>{{ cell.label }}</span>
+                            <div class="col-resizer" @mousedown.stop="onColResizeStart(cell.colId, $event)"></div>
+                        </th>
+                    </tr>
+                </template>
+                <tr v-else>
                     <th v-for="col in visibleColumns" :key="col.id" :class="'header-cell-' + col.id" :style="{
                         background: block.headerBg ?? '#f5f5f5', color: block.headerColor ?? '#333', fontWeight: block.headerFontWeight ?? 'bold',
                         fontFamily: block.headerFontFamily ?? 'inherit',
                         padding: cellPaddingStyle ?? '6px 8px', textAlign: block.headerHAlign ?? align(col), verticalAlign: block.headerVAlign ?? 'middle',
-                        border: cellBorder(), fontSize: `${block.headerFontSize ?? block.bodyFontSize ?? 12}px`, width: col.width ? `${col.width}%` : undefined, whiteSpace: 'nowrap'
+                        border: cellBorder(), fontSize: `${block.headerFontSize ?? block.bodyFontSize ?? 12}px`, whiteSpace: 'nowrap'
                     }" @contextmenu="onColumnHeaderContextMenu(col, $event)" @dblclick="editingHeaderColId = col.id">
                         <input v-if="editingHeaderColId === col.id" :value="col.label" class="inline-cell-input header-edit-input" :style="{ color: block.headerColor ?? '#333', background: 'white', fontWeight: block.headerFontWeight ?? 'bold' }" @input="updateColumnProp(col.id, 'label', $event.target.value)" @blur="editingHeaderColId = null; commitHistory()" @keydown.enter="editingHeaderColId = null; commitHistory()" @keydown.esc="editingHeaderColId = null" />
                         <span v-else>{{ col.label }}</span>
                         <div class="col-resizer" @mousedown.stop="onColResizeStart(col.id, $event)"></div>
-                        
                     </th>
                 </tr>
             </thead>
@@ -645,12 +793,15 @@ watch(editingSpecialRowId, (newId) => { if (newId) nextTick(() => document.query
                                 <template v-else>
                                     <input v-if="fillMode && editingCell?.r === row.index && editingCell?.colId === col.id" :value="row.item[col.id]" class="inline-cell-input" @input="updateItemValue(row.localIndex, col.id, $event.target.value)" @blur="editingCell = null; commitHistory()" @keydown="handleKeyDown" />
                                     <span v-else-if="!col.subFields?.length">{{ formatVal(col, row.item) }}</span>
-                                    <div v-else class="multi-value-cell">
-                                        <span v-if="col.subFields?.[0]?.display === 'inline'" :style="{ fontWeight: col.bold ? 'bold' : undefined, marginRight: '4px' }">{{ formatVal(col, row.item) }}</span>
-                                        <div v-else :style="{ fontWeight: col.bold ? 'bold' : undefined, marginBottom: '1px' }">{{ formatVal(col, row.item) }}</div>
+                                    <div v-else class="multi-value-cell" :style="{ display: 'flex', flexWrap: 'wrap', gap: '2px 6px' }">
+                                        <span :style="{
+                                            fontWeight: col.bold ? 'bold' : undefined,
+                                            color: col.color ?? undefined,
+                                            flex: '0 0 auto',
+                                        }">{{ formatVal(col, row.item) }}</span>
                                         <template v-for="(sub, si) in col.subFields" :key="si">
-                                            <span v-if="sub.display === 'inline'" :style="subFieldStyle(sub, col)">{{ formatSubFieldVal(sub, row.item) }}</span>
-                                            <div v-else :style="subFieldStyle(sub, col)">{{ formatSubFieldVal(sub, row.item) }}</div>
+                                            <div v-if="sub.display !== 'inline'" :style="{ width: '100%', flex: '0 0 100%', height: 0 }" />
+                                            <span :style="subFieldStyle(sub, col)">{{ formatSubFieldVal(sub, row.item) }}</span>
                                         </template>
                                     </div>
                                 </template>

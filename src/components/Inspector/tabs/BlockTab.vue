@@ -68,6 +68,7 @@ function addColumn() {
         id: newId,
         label: "New Column",
         width: 10,
+        widthUnit: '%',
         visible: true,
         dataKey: "",
         format: { type: "text" },
@@ -89,6 +90,7 @@ function deleteColumn(colId) {
 }
 
 const dragColId = ref(null);
+const dragEnabledColId = ref(null);
 
 function onDragStart(colId) {
     dragColId.value = colId;
@@ -98,7 +100,7 @@ function onDragOver(e) {
     e.preventDefault();
 }
 
-function onDrop(targetColId) {
+function onDragEnter(targetColId) {
     const fromId = dragColId.value;
     if (!fromId || fromId === targetColId) return;
     const columns = getStoredColumns();
@@ -108,8 +110,12 @@ function onDrop(targetColId) {
     const [moved] = columns.splice(fromIdx, 1);
     columns.splice(toIdx, 0, moved);
     updateProp("columns", columns);
-    commitHistory();
+}
+
+function onDragEnd() {
     dragColId.value = null;
+    dragEnabledColId.value = null;
+    commitHistory();
 }
 
 function getColumnFormat(col) {
@@ -133,6 +139,15 @@ function updateColumnFormatType(colId, type) {
     commitHistory();
 }
 
+function toggleColumnWidthUnit(colId) {
+    const columns = getStoredColumns();
+    const col = columns.find(c => c.id === colId);
+    if (!col) return;
+    col.widthUnit = (col.widthUnit ?? '%') === '%' ? 'px' : '%';
+    updateProp("columns", columns);
+    commitHistory();
+}
+
 function toggleSubFields(colId) {
     const columns = getStoredColumns();
     const col = columns.find(c => c.id === colId);
@@ -146,7 +161,7 @@ function addSubField(colId) {
     const col = columns.find(c => c.id === colId);
     if (!col) return;
     if (!col.subFields) col.subFields = [];
-    col.subFields.push({ dataKey: "", bold: false, fontSize: undefined, color: undefined, display: 'block', format: { type: 'text' } });
+    col.subFields.push({ dataKey: "", bold: false, fontSize: 10, color: undefined, display: 'block', format: { type: 'text' } });
     col.subFieldsOpen = true;
     updateProp("columns", columns);
     commitHistory();
@@ -1306,17 +1321,42 @@ function moveField(fromIndex, toIndex) {
                         display: flex;
                         align-items: center;
                         justify-content: space-between;
+                        gap: 8px;
                     "
                 >
-                    <span>Borders on Empty Rows</span>
-                    <label class="toggle">
-                        <input
-                            type="checkbox"
-                            :checked="block.showEmptyRowBorders !== false"
-                            @change="handleCheckbox('showEmptyRowBorders', $event)"
-                        />
-                        <span class="toggle-track" />
-                    </label>
+                    <span>Data Row Borders</span>
+                    <select
+                        :value="block.dataRowBordersMode ?? 'grid'"
+                        class="inp"
+                        style="width: 110px; padding: 2px 4px; font-size: 11px;"
+                        @change="updateProp('dataRowBordersMode', $event.target.value)"
+                    >
+                        <option value="grid">Grid (All)</option>
+                        <option value="vertical">Vertical Only</option>
+                        <option value="horizontal">Horizontal Only</option>
+                        <option value="none">None</option>
+                    </select>
+                </div>
+                <div
+                    style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 8px;
+                    "
+                >
+                    <span>Empty Row Borders</span>
+                    <select
+                        :value="block.emptyRowBordersMode ?? (block.showEmptyRowBorders === false ? 'none' : 'grid')"
+                        class="inp"
+                        style="width: 110px; padding: 2px 4px; font-size: 11px;"
+                        @change="updateProp('emptyRowBordersMode', $event.target.value)"
+                    >
+                        <option value="grid">Grid (All)</option>
+                        <option value="vertical">Vertical Only</option>
+                        <option value="horizontal">Horizontal Only</option>
+                        <option value="none">None</option>
+                    </select>
                 </div>
             </div>
 
@@ -1486,7 +1526,7 @@ function moveField(fromIndex, toIndex) {
                 <div
                     v-for="col in block.columns"
                     :key="col.id"
-                    draggable="true"
+                    :draggable="dragEnabledColId === col.id"
                     :style="{
                         display: 'flex',
                         flexDirection: 'column',
@@ -1495,18 +1535,23 @@ function moveField(fromIndex, toIndex) {
                         padding: '6px 8px',
                         borderRadius: '6px',
                         border: '1px solid ' + (dragColId === col.id ? 'var(--color-accent,rgba(0,180,216,0.5))' : 'var(--color-panel-border)'),
-                        cursor: 'grab',
+                        cursor: dragEnabledColId === col.id ? 'grabbing' : 'grab',
                         transition: 'background 0.15s, border-color 0.15s',
                     }"
                     @dragstart="onDragStart(col.id)"
                     @dragover="onDragOver"
-                    @drop="onDrop(col.id)"
-                    @dragend="dragColId = null"
+                    @dragenter="onDragEnter(col.id)"
+                    @dragend="onDragEnd"
                 >
                     <!-- Top row: drag handle, checkbox, label, width, delete -->
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <!-- Drag handle -->
-                        <span style="font-size:12px;color:var(--color-panel-muted,#666);cursor:grab;user-select:none;flex-shrink:0">⠿</span>
+                        <span
+                            style="font-size:12px;color:var(--color-panel-muted,#666);cursor:grab;user-select:none;flex-shrink:0"
+                            @mousedown="dragEnabledColId = col.id"
+                            @mouseup="dragEnabledColId = null"
+                            @mouseleave="dragEnabledColId = null"
+                        >⠿</span>
                         <!-- Visible check -->
                         <input
                             type="checkbox"
@@ -1525,16 +1570,19 @@ function moveField(fromIndex, toIndex) {
                         />
 
                         <!-- Width -->
-                        <div class="field-unit" style="width: 70px; height: 22px">
+                        <div class="field-unit" style="width: 60px; height: 22px">
                             <input
                                 type="number"
                                 :value="col.width"
                                 class="inp"
                                 style="padding: 2px 4px; font-size: 11px; text-align: center;"
-                                @input="updateColumnProp(col.id, 'width', parseFloat($event.target.value))"
+                                @change="updateColumnProp(col.id, 'width', $event.target.valueAsNumber || 0)"
                             />
-                            <span class="field-unit-label" style="padding: 0 4px; font-size: 9px">%</span>
                         </div>
+                        <button
+                            style="font-size:9px;padding:1px 4px;border:1px solid var(--color-panel-border);border-radius:3px;background:transparent;color:var(--color-panel-muted);cursor:pointer;height:22px;flex-shrink:0"
+                            @click="toggleColumnWidthUnit(col.id)"
+                        >{{ col.widthUnit ?? '%' }}</button>
 
                         <!-- Delete button -->
                         <button
@@ -1582,6 +1630,13 @@ function moveField(fromIndex, toIndex) {
                             title="Bold"
                             @click="updateColumnProp(col.id, 'bold', !col.bold)"
                         >B</button>
+                        <input
+                            type="color"
+                            :value="col.color ?? '#000000'"
+                            style="width: 18px; height: 18px; padding: 0; border: none; border-radius: 2px; cursor: pointer; flex-shrink: 0;"
+                            title="Color"
+                            @input="updateColumnProp(col.id, 'color', $event.target.value)"
+                        />
                     </div>
 
                     <!-- Data key & format -->
@@ -1590,9 +1645,18 @@ function moveField(fromIndex, toIndex) {
                             type="text"
                             :value="col.dataKey ?? col.id"
                             class="inp"
-                            style="padding: 2px 4px; font-size: 11px; width: 80px; min-width: 60px; flex: 1 1 auto;"
+                            style="padding: 2px 4px; font-size: 11px; width: 70px; min-width: 50px; flex: 1 1 auto;"
                             placeholder="Data key"
                             @input="updateColumnProp(col.id, 'dataKey', $event.target.value)"
+                        />
+                        <input
+                            type="text"
+                            :value="col.group ?? ''"
+                            class="inp"
+                            style="padding: 2px 4px; font-size: 11px; width: 60px; min-width: 40px; flex: 1 1 auto;"
+                            placeholder="Group"
+                            title="Header Group (e.g. Price, Amount)"
+                            @input="updateColumnProp(col.id, 'group', $event.target.value)"
                         />
                         <select
                             :value="getColumnFormat(col).type"
@@ -1651,28 +1715,34 @@ function moveField(fromIndex, toIndex) {
                                             placeholder="Data key"
                                             @input="updateSubField(col.id, si, 'dataKey', $event.target.value)"
                                         />
-                                        <label style="display:flex;align-items:center;gap:2px;font-size:9px;color:var(--color-panel-muted);white-space:nowrap">
-                                            <input type="checkbox" :checked="sub.bold" @change="updateSubField(col.id, si, 'bold', $event.target.checked)" style="margin:0" />
-                                            B
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min="6"
-                                            max="24"
-                                            step="1"
-                                            :value="sub.fontSize ?? ''"
-                                            class="inp"
-                                            style="padding:1px 2px;font-size:9px;width:28px;text-align:center"
-                                            placeholder="Sz"
-                                            @change="updateSubField(col.id, si, 'fontSize', parseInt($event.target.value) || undefined)"
-                                        />
+                                        <button
+                                            class="align-btn"
+                                            :class="{ active: sub.bold }"
+                                            style="font-weight: 700; font-size: 10px; width: 18px; height: 18px; line-height: 18px; padding: 0;"
+                                            title="Bold"
+                                            @click="updateSubField(col.id, si, 'bold', !sub.bold)"
+                                        >B</button>
+                                        <div class="field-unit" style="height: 18px; flex: 0 0 auto;">
+                                            <input
+                                                type="number"
+                                                min="6"
+                                                max="24"
+                                                step="1"
+                                                :value="sub.fontSize ?? 10"
+                                                class="inp"
+                                                style="padding: 1px 2px; font-size: 9px; width: 28px; text-align: center; height: 100%; border: none;"
+                                                placeholder="Sz"
+                                                @change="updateSubField(col.id, si, 'fontSize', parseInt($event.target.value) || undefined)"
+                                            />
+                                            <span class="field-unit-label" style="padding: 0 4px; font-size: 8px; border-left: 1px solid var(--color-panel-border);">px</span>
+                                        </div>
                                         <input
                                             type="color"
                                             :value="sub.color ?? '#000000'"
-                                            style="width:14px;height:14px;padding:0;border:none;border-radius:2px;cursor:pointer;flex-shrink:0"
+                                            style="width:18px;height:18px;padding:0;border:none;border-radius:2px;cursor:pointer;flex-shrink:0"
                                             @input="updateSubField(col.id, si, 'color', $event.target.value)"
                                         />
-                                        <button class="btn btn-ghost btn-icon text-danger" style="width:16px;height:16px;padding:0;font-size:10px;flex-shrink:0" title="Remove sub-field" @click="removeSubField(col.id, si)">×</button>
+                                        <button class="btn btn-ghost btn-icon text-danger" style="width:18px;height:18px;padding:0;font-size:10px;flex-shrink:0" title="Remove sub-field" @click="removeSubField(col.id, si)">×</button>
                                     </div>
                                     <div style="display:flex;align-items:center;gap:4px;padding-left:22px">
                                         <select
@@ -1696,16 +1766,16 @@ function moveField(fromIndex, toIndex) {
                                             />
                                         </template>
                                         <template v-if="(sub.format?.type ?? 'text') === 'number' || sub.format?.type === 'currency'">
-                                            <div class="field-unit" style="height:16px;flex:0 0 auto">
+                                            <div class="field-unit" style="height:18px;flex:0 0 auto">
                                                 <input
                                                     type="text"
                                                     inputmode="numeric"
                                                     :value="sub.format?.decimals ?? 2"
                                                     class="inp"
-                                                    style="padding:1px 2px;font-size:9px;width:26px;text-align:center"
+                                                    style="padding:1px 2px;font-size:9px;width:26px;text-align:center;height:100%;border:none;"
                                                     @change="updateSubFieldFmt(col.id, si, 'decimals', parseInt($event.target.value, 10) || 0)"
                                                 />
-                                                <span class="field-unit-label" style="padding:0 2px;font-size:8px">dec</span>
+                                                <span class="field-unit-label" style="padding:0 4px;font-size:8px;border-left:1px solid var(--color-panel-border);">dec</span>
                                             </div>
                                         </template>
                                     </div>
