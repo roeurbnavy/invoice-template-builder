@@ -4,6 +4,7 @@ import TopBar from './components/TopBar/TopBar.vue'
 import LeftPanel from './components/LeftPanel/LeftPanel.vue'
 import CanvasWorkspace from './components/Canvas/CanvasWorkspace.vue'
 import InspectorPanel from './components/Inspector/InspectorPanel.vue'
+import PreviewModal from './components/common/PreviewModal.vue'
 import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts.js'
 import { useExport } from './composables/useExport.js'
 import { useHistoryStore } from './stores/history.js'
@@ -62,6 +63,20 @@ onMounted(() => {
   })
 })
 
+// Apply global font to all blocks when changed
+watch(
+    () => settingsStore.globalFont,
+    (newFont) => {
+        const updated = blockStore.blocks.map(b => {
+            if ('fontFamily' in b) {
+                return { ...b, fontFamily: newFont };
+            }
+            return b;
+        });
+        blockStore.setBlocks(updated);
+    }
+);
+
 // Auto-save watch
 watch(
   [
@@ -103,5 +118,6 @@ watch(
       <CanvasWorkspace />
       <InspectorPanel />
     </div>
+    <PreviewModal />
   </div>
 </template>

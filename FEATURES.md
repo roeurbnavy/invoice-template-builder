@@ -15,7 +15,8 @@
 6. [Save, Export & Import](#6-save-export--import)
 7. [Language Translation](#7-language-translation)
 8. [Keyboard Shortcuts](#8-keyboard-shortcuts)
-9. [History & Undo / Redo](#9-history--undo--redo)
+9. [Data Binding System](#9-data-binding-system)
+10. [History & Undo / Redo](#10-history--undo--redo)
 
 ---
 
@@ -296,7 +297,86 @@ The translation map includes 80+ common document terms:
 
 ---
 
-## 9. History & Undo / Redo
+## 9. Data Binding System
+
+InvoiceForge includes a schema-driven **data binding** system that connects visual blocks on the canvas to data fields from your POS system.
+
+### How It Works
+
+1. Each **document type** (Sale, Deposit, Receipt, etc.) defines its own **field schema** — a list of available data fields grouped by category (Document, Customer, Company, Financial, Items, etc.).
+2. When you select a block and open the **Inspector → Data Tab**, you see all available fields for the current document type.
+3. Pick a field to **bind** the block to that data source. The block now displays dynamic data instead of static content.
+
+### Data Tab UI
+
+| Control | Description |
+|---|---|
+| **Document Type Badge** | Shows which document schema is active |
+| **Field Selector** | Dropdown grouped by category showing all available fields for the active document type. Incompatible fields (e.g., table fields for text blocks) are disabled. |
+| **Field Path** | Displays the dot-notation path of the bound field (e.g., `customer.name`) |
+| **Type Badge** | Shows the data type: `string`, `currency`, `date`, `number`, `table` — color-coded for quick identification |
+| **Format Settings** | Type-specific options appear when a field is bound: date format picker, currency selector, decimal precision, etc. |
+| **Preview** | Shows a live preview of the resolved value using sample data |
+| **Clear Binding** | Removes the binding and reverts to static content |
+
+### Schema Definitions
+
+Field schemas are defined in `src/constants/documentSchemas.js`. Each schema specifies:
+
+```js
+{ key: 'customer.name', label: 'Customer Name', group: 'Customer', type: 'string' }
+```
+
+- `key` — Dot-notation path used to resolve data (e.g., `doc.number`, `totals.total`)
+- `label` — Human-readable name shown in the Data Tab
+- `group` — Category grouping for the dropdown
+- `type` — Data type: `string`, `date`, `currency`, `number`, `table`
+
+### Preview Mode
+
+Toggle **Preview** in the toolbar to see how bound blocks will look with live data. The system resolves bindings against built-in sample data.
+
+### POS Integration
+
+When your POS system uses a template to generate a document:
+
+```js
+import { resolveBlockBinding } from './utils/variableResolver.js'
+import { DOCUMENT_SCHEMAS } from './constants/documentSchemas.js'
+
+// Your POS order data
+const posData = {
+  doc: { number: 'INV-001', date: '2026-06-27' },
+  customer: { name: 'ABC Corp', address: '123 Main St' },
+  company: { name: 'Your Store', phone: '+855 12 345 678' },
+  totals: { subtotal: 100.00, tax: 10.00, total: 110.00 },
+  items: [
+    { description: 'Widget', qty: 2, unit_price: 50.00, total: 100.00 }
+  ]
+}
+
+// Resolve bindings for each block
+template.blocks.forEach(block => {
+  const resolved = resolveBlockBinding(block, posData, false)
+  if (resolved !== null) {
+    block.resolvedContent = Array.isArray(resolved) ? resolved : String(resolved)
+  }
+})
+```
+
+The exported template JSON includes all `dataBinding` info so your POS system can resolve fields with zero additional configuration.
+
+### Adding Custom Document Types
+
+To add a new document type for your POS:
+
+1. Add a schema in `documentSchemas.js` with the fields your POS sends
+2. Add a preset layout in `presets.js` with block positions and defaults
+3. The document type appears automatically in the toolbar
+
+---
+
+## 10. History & Undo / Redo
 
 - Every change that modifies the canvas is pushed to a history stack
 - **Undo** (`Ctrl+Z`) steps backward through the stack
@@ -307,7 +387,7 @@ The translation map includes 80+ common document terms:
 
 ---
 
-## Tech Stack (for developers)
+## 11. Tech Stack (for developers)
 
 | Layer | Technology |
 |---|---|

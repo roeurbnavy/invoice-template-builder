@@ -44,6 +44,7 @@ export const VARIABLE_FIELDS = [
 export const VARIABLE_GROUPS = [...new Set(VARIABLE_FIELDS.map(f => f.group))]
 
 // Sample data for preview mode
+// Includes both old (invoice.*) and new (doc.* / totals.*) paths for backward compat
 export const SAMPLE_DATA = {
   invoice: {
     number: 'INV-2024-0001',
@@ -58,6 +59,49 @@ export const SAMPLE_DATA = {
     paid: 0,
     notes: 'Thank you for your business.',
     terms: 'Payment is due within 30 days.',
+  },
+  doc: {
+    type: 'Invoice',
+    number: 'INV-2024-0001',
+    date: '2024-01-15',
+    due_date: '2024-02-15',
+    reference: 'PO-12345',
+    delivery_date: '2024-02-01',
+    valid_until: '2024-02-15',
+    required_date: '2024-02-15',
+    reason: 'Returned goods - damaged in transit',
+    notes: 'Thank you for your business.',
+    terms: 'Payment is due within 30 days.',
+    page_number: 1,
+    total_pages: 1,
+  },
+  totals: {
+    subtotal: 1000.00,
+    discount: 50.00,
+    tax: 95.00,
+    total: 1045.00,
+    balance: 1045.00,
+    paid: 0,
+  },
+  deposit: {
+    total: 2000.00,
+    paid: 500.00,
+    balance: 1500.00,
+  },
+  payment: {
+    method: 'Cash',
+    amount: 1045.00,
+    change: 0,
+  },
+  shipping: {
+    carrier: 'Speed Logistics',
+    tracking: 'TRK-9981',
+  },
+  vendor: {
+    name: 'Global Supplies Co.',
+    email: 'orders@globalsupplies.com',
+    phone: '+1 (555) 234-5678',
+    address: '789 Supplier Blvd',
   },
   customer: {
     name: 'Acme Corporation',
@@ -79,9 +123,9 @@ export const SAMPLE_DATA = {
     account_no: '1234-5678-9012',
     account_name: 'My Company Ltd.',
   },
-  doc: {
-    type: 'Invoice',
-    page_number: 1,
-    total_pages: 1,
-  },
+  items: [
+    { no: 1, description: 'Web Design Service', qty: 1, unit_price: 500.00, discount: 0, tax: 10, total: 500.00, amountAfterDiscount: 500.00 },
+    { no: 2, description: 'Hosting (Annual)', qty: 1, unit_price: 300.00, discount: 0, tax: 10, total: 300.00, amountAfterDiscount: 300.00 },
+    { no: 3, description: 'Domain Registration', qty: 1, unit_price: 200.00, discount: 0, tax: 10, total: 200.00, amountAfterDiscount: 200.00 },
+  ],
 }

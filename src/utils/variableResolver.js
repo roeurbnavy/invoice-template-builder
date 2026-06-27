@@ -1,4 +1,5 @@
 import { SAMPLE_DATA } from '../constants/variableFields.js'
+import { DOCUMENT_SCHEMAS } from '../constants/documentSchemas.js'
 
 /**
  * Resolve template variables in a string
@@ -61,17 +62,88 @@ function formatDate(value, dateFormat = 'DD/MM/YYYY') {
   }
 }
 
-function formatNumber(value, { decimals = 2, separator = ',' } = {}) {
+function formatNumber(value, { decimals = 2 } = {}) {
   const num = parseFloat(value)
   if (isNaN(num)) return String(value)
+  const dec = Math.max(0, Math.min(10, decimals ?? 2))
   return num.toLocaleString('en-US', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
+    minimumFractionDigits: dec,
+    maximumFractionDigits: dec,
   })
 }
 
-function formatCurrency(value, { currency = 'USD', locale = 'en-US' } = {}) {
+function formatCurrency(value, { currency = 'USD', locale = 'en-US', decimals } = {}) {
   const num = parseFloat(value)
   if (isNaN(num)) return String(value)
-  return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(num)
+  const dec = Math.max(0, Math.min(10, decimals ?? 2))
+  // Standard ISO 4217 codes (3 uppercase letters) use Intl
+  if (/^[A-Z]{3}$/.test(currency)) {
+    try {
+      return new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: dec, maximumFractionDigits: dec }).format(num)
+    } catch {
+      // fall through
+    }
+  }
+  // Custom symbol: format number then prepend the symbol
+  const formatted = num.toLocaleString(locale, {
+    minimumFractionDigits: dec,
+    maximumFractionDigits: dec,
+  })
+  return `${currency}${formatted}`
 }
+
+/**
+ * Resolve a block's dataBinding against provided data.
+ *
+ * Design mode (previewMode=false, data=SAMPLE_DATA):
+ *   shows a placeholder like `[Field Name]`
+ * Preview mode (previewMode=true):
+ *   resolves against SAMPLE_DATA
+ * Production (previewMode=false, data=posData):
+ *   resolves against real POS data
+ */
+export function resolveBlockBinding(block, data, previewMode = false) {
+  const binding = block.dataBinding
+  if (!binding || !binding.field) {
+    return null
+  }
+
+  const resolvedData = data ?? SAMPLE_DATA
+  const rawValue = getNestedValue(resolvedData, binding.field)
+
+  if (rawValue === undefined || rawValue === null) {
+    if (previewMode) {
+      return `[${getFieldLabelForDoc(resolvedData, binding.field)}]`
+    }
+    return block.fallback ?? block.content ?? ''
+  }
+
+  if (typeof rawValue === 'object' && !Array.isArray(rawValue)) {
+    return String(rawValue)
+  }
+
+  if (Array.isArray(rawValue)) {
+    return rawValue
+  }
+
+  return formatValue(rawValue, binding.type, binding.format)
+}
+
+/**
+ * Get a user-friendly label for a field path, e.g. "customer.name" → "Customer Name"
+ */
+export function getFieldLabel(fieldKey) {
+  if (!fieldKey) return ''
+  const parts = fieldKey.split('.')
+  return parts.map(p => p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())).join(' › ')
+}
+
+function getFieldLabelForDoc(data, fieldKey) {
+  for (const schema of Object.values(DOCUMENT_SCHEMAS)) {
+    const field = schema.fields.find(f => f.key === fieldKey)
+    if (field) return field.label
+  }
+  return getFieldLabel(fieldKey)
+}
+
+export { SAMPLE_DATA }

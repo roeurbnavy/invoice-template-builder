@@ -82,7 +82,7 @@ const visibleTabs = computed(() => {
             ].includes(type);
         }
         if (tab.id === "data") {
-            return ["item_table"].includes(type);
+            return true;
         }
         if (tab.id === "block") {
             return [

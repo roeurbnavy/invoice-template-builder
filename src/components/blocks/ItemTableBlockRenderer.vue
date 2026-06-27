@@ -3,6 +3,7 @@ import { computed, ref, nextTick, watch, onMounted, onUnmounted } from "vue";
 import { useBlockStore } from "../../stores/blocks.js";
 import { useHistoryStore } from "../../stores/history.js";
 import { useCanvasStore } from "../../stores/canvas.js";
+import { resolveBlockBinding, formatValue } from "../../utils/variableResolver.js";
 // Column resize
 const resizingCol = ref(null)
 const resizeStartX = ref(0)
@@ -88,7 +89,19 @@ const visibleColumns = computed(() =>
     (props.block.columns ?? []).filter((c) => c.visible !== false),
 );
 
-const items = computed(() => props.block.items ?? []);
+const resolvedItems = computed(() => {
+    const binding = resolveBlockBinding(props.block, null, canvasStore.previewMode);
+    if (binding !== null && Array.isArray(binding)) {
+        return binding;
+    }
+    return null;
+});
+
+const items = computed(() => {
+    const resolved = resolvedItems.value;
+    if (resolved) return resolved;
+    return props.block.items ?? [];
+});
 
 const tableStyle = computed(() => ({
     width: "100%",
@@ -122,8 +135,13 @@ function vAlign(col) {
 }
 
 function formatVal(col, item) {
-    const val = item[col.id];
+    const key = col.dataKey ?? col.id;
+    const val = item[key];
     if (val === undefined || val === null) return "";
+    const fmt = col.format;
+    if (fmt?.type && fmt.type !== 'text') {
+        return formatValue(val, fmt.type, fmt);
+    }
     return String(val);
 }
 
@@ -523,7 +541,7 @@ function getCellCustomStyles(r, col) {
     return {
         backgroundColor: isCellSelected(r, col.id) ? 'rgba(0, 180, 216, 0.15)' : (cellStyle.bgColor ?? rowStyle.bgColor ?? getRowBgColor(r)),
         color: cellStyle.textColor ?? rowStyle.textColor ?? '#333',
-        fontWeight: (cellStyle.bold ?? rowStyle.bold ?? (col.id === 'total' || rowStyle.isSummary || rowStyle.isHeader)) ? 'bold' : 'normal',
+        fontWeight: (cellStyle.bold ?? rowStyle.bold ?? col.bold ?? (col.id === 'total' || rowStyle.isSummary || rowStyle.isHeader)) ? 'bold' : 'normal',
         fontStyle: (cellStyle.italic ?? rowStyle.italic) ? 'italic' : 'normal',
         height: rowStyle.height ? `${rowStyle.height}px` : undefined,
         borderBottom: rowStyle.isSummary ? `3px double ${borderColor.value}` : undefined
@@ -604,6 +622,9 @@ watch(editingSpecialRowId, (newId) => { if (newId) nextTick(() => document.query
                                     <span v-else>{{ formatVal(col, row.item) }}</span>
                                 </template>
                             </template>
+                            <template v-else>
+                                &nbsp;
+                            </template>
                         <div class="row-resizer" @mousedown.stop="onRowResizeStart(row.index, $event)"></div></td>
                     </template>
                 </tr>
@@ -628,7 +649,7 @@ watch(editingSpecialRowId, (newId) => { if (newId) nextTick(() => document.query
                     </tr>
                     <tr v-else-if="sRow.type === 'divider'"><td :colspan="visibleColumns.length" :style="{ padding: '4px 0', borderLeft: showBorders ? cellBorder() : 'none', borderRight: showBorders ? cellBorder() : 'none', borderTop: 'none', borderBottom: 'none' }"><div :style="{ borderTop: `${sRow.thickness ?? 1}px solid ${sRow.color ?? '#e0e0e0'}`, width: '100%' }" /></td></tr>
                 </template>
-                <tr v-if="fillMode" class="add-row-tr"><td :colspan="visibleColumns.length" style="padding: 6px 8px; border: none; text-align: left;"><button class="inline-add-row-btn" @click="addRowInline">+ Add Row</button></td></tr>
+                
             </tbody>
         </table>
     </div>

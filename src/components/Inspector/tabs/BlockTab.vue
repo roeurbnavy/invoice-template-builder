@@ -3,7 +3,7 @@ import { computed, ref } from "vue";
 import { useBlockStore } from "../../../stores/blocks.js";
 import { useHistoryStore } from "../../../stores/history.js";
 import { useSettingsStore } from "../../../stores/settings.js";
-import { Upload, Trash2 } from "@lucide/vue";
+import { Trash2 } from "@lucide/vue";
 
 const props = defineProps({
     block: { type: Object, required: true },
@@ -36,54 +36,84 @@ function handleCheckbox(prop, e) {
     commitHistory();
 }
 
-// Convert uploaded file to Base64 string
-function handleFileUpload(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            updateProp("src", event.target.result);
-            commitHistory();
-        };
-        reader.readAsDataURL(file);
-    }
+// Get latest columns directly from store (bypasses prop reactivity lag)
+function getStoredColumns() {
+    const block = blockStore.blocks.find(b => b.id === props.block.id);
+    return JSON.parse(JSON.stringify(block?.columns || []));
 }
 
-// Helper to update columns in item table
-function updateColumnProp(colIndex, prop, val) {
-    const columns = JSON.parse(JSON.stringify(props.block.columns || []));
-    if (columns[colIndex]) {
-        columns[colIndex][prop] = val;
-        updateProp("columns", columns);
-        commitHistory();
-    }
+// Helper to update columns in item table (uses colId to avoid index mismatch)
+function updateColumnProp(colId, prop, val) {
+    const columns = getStoredColumns();
+    const col = columns.find(c => c.id === colId);
+    if (!col) return;
+    col[prop] = val;
+    updateProp("columns", columns);
+    commitHistory();
 }
 
 // Helper to update header grid columns
 function updateHeaderColumn(index, prop, val) {
-    const cols = JSON.parse(JSON.stringify(props.block.columns ?? []));
-    if (cols[index]) {
-        cols[index][prop] = val;
-        updateProp("columns", cols);
+    const columns = getStoredColumns();
+    if (columns[index]) {
+        columns[index][prop] = val;
+        updateProp("columns", columns);
     }
 }
 
 function addColumn() {
-    const columns = JSON.parse(JSON.stringify(props.block.columns || []));
+    const columns = getStoredColumns();
     const newId = `col_${Date.now()}`;
     columns.push({
         id: newId,
         label: "New Column",
         width: 10,
         visible: true,
+        dataKey: "",
+        format: { type: "text" },
+        bold: false,
     });
     updateProp("columns", columns);
     commitHistory();
 }
 
-function deleteColumn(colIndex) {
-    const columns = JSON.parse(JSON.stringify(props.block.columns || []));
-    columns.splice(colIndex, 1);
+function deleteColumn(colId) {
+    const columns = getStoredColumns();
+    const idx = columns.findIndex(c => c.id === colId);
+    if (idx === -1) return;
+    columns.splice(idx, 1);
+    updateProp("columns", columns);
+    commitHistory();
+}
+
+function getColumnFormat(col) {
+    if (!col.format) return { type: "text" };
+    return { type: "text", ...col.format };
+}
+
+function updateColumnFormatType(colId, type) {
+    const columns = getStoredColumns();
+    const col = columns.find(c => c.id === colId);
+    if (!col) return;
+    const fmt = { ...(col.format || {}) };
+    fmt.type = type;
+    if (type === "currency" && !fmt.currency) fmt.currency = "USD";
+    if (type === "text") {
+        delete fmt.currency;
+        delete fmt.decimals;
+    }
+    col.format = fmt;
+    updateProp("columns", columns);
+    commitHistory();
+}
+
+function updateColumnFormatOption(colId, key, val) {
+    const columns = getStoredColumns();
+    const col = columns.find(c => c.id === colId);
+    if (!col) return;
+    const fmt = { ...(col.format || {}) };
+    fmt[key] = val;
+    col.format = fmt;
     updateProp("columns", columns);
     commitHistory();
 }
@@ -666,88 +696,6 @@ function moveField(fromIndex, toIndex) {
                         @blur="commitHistory"
                     />
                 </div>
-            </div>
-        </div>
-
-        <!-- ─── IMAGE BLOCK ─── -->
-        <div
-            v-else-if="block.type === 'image'"
-            class="field-group"
-        >
-            <div class="field-label">Image Settings</div>
-            <div class="field-single" style="margin-bottom: 12px">
-                <label
-                    style="
-                        font-size: 10px;
-                        color: var(--color-panel-muted);
-                        display: block;
-                        margin-bottom: 6px;
-                    "
-                    >Upload Image</label
-                >
-                <label
-                    class="btn btn-panel"
-                    style="
-                        display: flex;
-                        gap: 8px;
-                        width: 100%;
-                        cursor: pointer;
-                        justify-content: center;
-                        border-style: dashed;
-                        padding: 12px;
-                    "
-                >
-                    <Upload :size="16" />
-                    <span>Upload File</span>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        style="display: none"
-                        @change="handleFileUpload"
-                    />
-                </label>
-            </div>
-
-            <div class="field-single" style="margin-bottom: 12px">
-                <label
-                    style="
-                        font-size: 10px;
-                        color: var(--color-panel-muted);
-                        display: block;
-                        margin-bottom: 4px;
-                    "
-                    >Image URL (Optional)</label
-                >
-                <input
-                    type="text"
-                    :value="block.src ?? ''"
-                    class="inp"
-                    placeholder="https://example.com/logo.png"
-                    @input="updateProp('src', $event.target.value)"
-                    @blur="commitHistory"
-                />
-            </div>
-
-            <div class="field-single">
-                <label
-                    style="
-                        font-size: 10px;
-                        color: var(--color-panel-muted);
-                        display: block;
-                        margin-bottom: 4px;
-                    "
-                    >Fit Mode</label
-                >
-                <select
-                    :value="block.fitMode ?? 'contain'"
-                    class="inp"
-                    @change="handleInput('fitMode', $event, false)"
-                    @blur="commitHistory"
-                >
-                    <option value="contain">Contain (Keep Aspect Ratio)</option>
-                    <option value="cover">Cover (Fill Block)</option>
-                    <option value="fill">Stretch (Distort to Fit)</option>
-                </select>
             </div>
         </div>
 
@@ -1398,6 +1346,23 @@ function moveField(fromIndex, toIndex) {
                         <span class="toggle-track" />
                     </label>
                 </div>
+                <div
+                    style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                    "
+                >
+                    <span>Borders on Empty Rows</span>
+                    <label class="toggle">
+                        <input
+                            type="checkbox"
+                            :checked="block.showEmptyRowBorders !== false"
+                            @change="handleCheckbox('showEmptyRowBorders', $event)"
+                        />
+                        <span class="toggle-track" />
+                    </label>
+                </div>
             </div>
 
             <!-- Headers design -->
@@ -1564,7 +1529,7 @@ function moveField(fromIndex, toIndex) {
             </div>
             <div style="display: flex; flex-direction: column; gap: 8px">
                 <div
-                    v-for="(col, index) in block.columns"
+                    v-for="col in block.columns"
                     :key="col.id"
                     style="
                         display: flex;
@@ -1582,7 +1547,7 @@ function moveField(fromIndex, toIndex) {
                         <input
                             type="checkbox"
                             :checked="col.visible !== false"
-                            @change="updateColumnProp(index, 'visible', $event.target.checked)"
+                            @change="updateColumnProp(col.id, 'visible', $event.target.checked)"
                         />
 
                         <!-- Column label -->
@@ -1592,7 +1557,7 @@ function moveField(fromIndex, toIndex) {
                             class="inp"
                             style="padding: 2px 4px; font-size: 11px; flex: 1"
                             placeholder="Label"
-                            @input="updateColumnProp(index, 'label', $event.target.value)"
+                            @input="updateColumnProp(col.id, 'label', $event.target.value)"
                         />
 
                         <!-- Width -->
@@ -1602,7 +1567,7 @@ function moveField(fromIndex, toIndex) {
                                 :value="col.width"
                                 class="inp"
                                 style="padding: 2px 4px; font-size: 11px; text-align: center;"
-                                @input="updateColumnProp(index, 'width', parseFloat($event.target.value))"
+                                @input="updateColumnProp(col.id, 'width', parseFloat($event.target.value))"
                             />
                             <span class="field-unit-label" style="padding: 0 4px; font-size: 9px">%</span>
                         </div>
@@ -1612,14 +1577,14 @@ function moveField(fromIndex, toIndex) {
                             class="btn btn-ghost btn-icon text-danger"
                             style="width: 22px; height: 22px; padding: 0"
                             title="Delete Column"
-                            @click="deleteColumn(index)"
+                            @click="deleteColumn(col.id)"
                         >
                             <Trash2 :size="12" />
                         </button>
                     </div>
 
-                    <!-- Bottom row: H-align and V-align toggles -->
-                    <div style="display: flex; align-items: center; gap: 12px; padding-left: 2px;">
+                    <!-- Bottom row: H-align, V-align, Bold toggles -->
+                    <div style="display: flex; align-items: center; gap: 8px; padding-left: 2px;">
                         <div style="display: flex; align-items: center; gap: 4px;">
                             <span style="font-size: 9px; color: var(--color-panel-muted); white-space: nowrap;">H:</span>
                             <div class="align-btn-group">
@@ -1629,7 +1594,7 @@ function moveField(fromIndex, toIndex) {
                                     class="align-btn"
                                     :class="{ active: (col.hAlign ?? 'left') === opt.v }"
                                     :title="'Horizontal: ' + opt.v"
-                                    @click="updateColumnProp(index, 'hAlign', opt.v)"
+                                    @click="updateColumnProp(col.id, 'hAlign', opt.v)"
                                 >{{ opt.label }}</button>
                             </div>
                         </div>
@@ -1642,10 +1607,62 @@ function moveField(fromIndex, toIndex) {
                                     class="align-btn"
                                     :class="{ active: (col.vAlign ?? 'top') === opt.v }"
                                     :title="'Vertical: ' + opt.v"
-                                    @click="updateColumnProp(index, 'vAlign', opt.v)"
+                                    @click="updateColumnProp(col.id, 'vAlign', opt.v)"
                                 >{{ opt.label }}</button>
                             </div>
                         </div>
+                        <button
+                            class="align-btn"
+                            :class="{ active: col.bold }"
+                            style="font-weight: 700; font-size: 11px; width: 20px; height: 18px;"
+                            title="Bold"
+                            @click="updateColumnProp(col.id, 'bold', !col.bold)"
+                        >B</button>
+                    </div>
+
+                    <!-- Data key & format -->
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px; row-gap: 4px; padding-left: 2px;">
+                        <input
+                            type="text"
+                            :value="col.dataKey ?? col.id"
+                            class="inp"
+                            style="padding: 2px 4px; font-size: 11px; width: 80px; min-width: 60px; flex: 1 1 auto;"
+                            placeholder="Data key"
+                            @input="updateColumnProp(col.id, 'dataKey', $event.target.value)"
+                        />
+                        <select
+                            :value="getColumnFormat(col).type"
+                            class="inp"
+                            style="padding: 2px 4px; font-size: 11px; width: 68px; flex: 0 0 auto;"
+                            @change="updateColumnFormatType(col.id, $event.target.value)"
+                        >
+                            <option value="text">Text</option>
+                            <option value="number">Number</option>
+                            <option value="currency">Currency</option>
+                        </select>
+                        <template v-if="getColumnFormat(col).type === 'currency'">
+                            <input
+                                type="text"
+                                :value="col.format?.currency ?? 'USD'"
+                                class="inp"
+                                style="padding: 2px 4px; font-size: 11px; width: 50px; flex: 0 0 auto; text-align: center;"
+                                placeholder="USD $"
+                                @change="updateColumnFormatOption(col.id, 'currency', $event.target.value)"
+                            />
+                        </template>
+                        <template v-if="getColumnFormat(col).type === 'number' || getColumnFormat(col).type === 'currency'">
+                            <div class="field-unit" style="width: 48px; height: 22px; flex: 0 0 auto;">
+                                <input
+                                    type="text"
+                                    inputmode="numeric"
+                                    :value="col.format?.decimals ?? 2"
+                                    class="inp"
+                                    style="padding: 2px 4px; font-size: 11px; text-align: center;"
+                                    @change="updateColumnFormatOption(col.id, 'decimals', parseInt($event.target.value, 10) || 0)"
+                                />
+                                <span class="field-unit-label" style="padding: 0 3px; font-size: 9px;">dec</span>
+                            </div>
+                        </template>
                     </div>
                 </div>
 

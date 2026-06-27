@@ -542,6 +542,24 @@ select.inp option {
     flex-shrink: 0;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
     z-index: 100;
+    overflow: visible;
+}
+
+.topbar-scroll {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: thin;
+    height: 100%;
+}
+.topbar-scroll::-webkit-scrollbar {
+    height: 3px;
+}
+.topbar-scroll::-webkit-scrollbar-thumb {
+    background: var(--color-panel-border);
+    border-radius: 3px;
 }
 
 .topbar-logo {

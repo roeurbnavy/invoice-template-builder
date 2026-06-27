@@ -61,6 +61,9 @@ export const BLOCK_TYPES = Object.freeze({
   CONDITIONAL_BLOCK: "conditional_block",
   FORMULA_BLOCK: "formula_block",
 
+  // Payment
+  PAYMENT_QR: "payment_qr",
+
   // Smart
   BARCODE: "barcode",
   MULTI_LANGUAGE_ROW: "multi_language_row",
@@ -83,7 +86,7 @@ export const BLOCK_CATEGORIES = [
     id: "content",
     label: "Text & Content",
     icon: "Type",
-    blocks: ["text", "image", "divider", "spacer", "checkboxes_row"],
+    blocks: ["text", "image", "divider", "spacer", "checkboxes_row", "field_row"],
   },
   {
     id: "layout",
@@ -91,12 +94,7 @@ export const BLOCK_CATEGORIES = [
     icon: "Layout",
     blocks: ["container", "table"],
   },
-  {
-    id: "info",
-    label: "Info Blocks",
-    icon: "Building2",
-    blocks: ["company_info", "client_info", "field_row"],
-  },
+
   {
     id: "document",
     label: "Document",

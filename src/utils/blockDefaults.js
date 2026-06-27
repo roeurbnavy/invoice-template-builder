@@ -22,6 +22,12 @@ const BASE = {
   paddingRight: 0,
   paddingBottom: 0,
   paddingLeft: 0,
+  // Data binding
+  dataBinding: {
+    field: null,
+    type: 'string',
+    format: {},
+  },
 };
 
 const TEXT_STYLE = {
@@ -54,6 +60,7 @@ export const BLOCK_DEFAULTS = {
     variable: "invoice.number",
     fallback: "N/A",
     ...TEXT_STYLE,
+    dataBinding: { field: null, type: 'string', format: {} },
   },
 
   [BLOCK_TYPES.IMAGE]: {
@@ -235,6 +242,19 @@ export const BLOCK_DEFAULTS = {
     color: "#555555",
   },
 
+  [BLOCK_TYPES.PAYMENT_QR]: {
+    ...BASE,
+    width: 120,
+    height: 120,
+    src: null,
+    fitMode: "contain",
+    label: "Scan to Pay",
+    showLabel: true,
+    ...TEXT_STYLE,
+    fontSize: 10,
+    textAlign: "center",
+  },
+
   [BLOCK_TYPES.BANK_DETAILS]: {
     ...BASE,
     width: 280,
@@ -352,6 +372,10 @@ export const BLOCK_DEFAULTS = {
  * Merges base defaults with type-specific defaults
  */
 export function getBlockDefaults(type, overrides = {}) {
+  if (!type) {
+    console.warn(`getBlockDefaults called with invalid type: ${type}`)
+    return null
+  }
   const defaults = BLOCK_DEFAULTS[type] ?? { ...BASE, width: 200, height: 50 };
   return {
     ...defaults,

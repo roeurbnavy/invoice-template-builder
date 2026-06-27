@@ -65,6 +65,7 @@ const RENDERERS = {
     thank_you: NotesBlockRenderer,
     bank_details: BankDetailsBlockRenderer,
     watermark: WatermarkBlockRenderer,
+    payment_qr: ImageBlockRenderer,
     // New renderers
     document_header: DocumentHeaderBlockRenderer,
     checkboxes_row: CheckboxesRowBlockRenderer,
@@ -535,54 +536,6 @@ const handleStyle = (handle) => {
         @mousedown="onMouseDown"
         @dblclick="onDblClick"
     >
-        <!-- Floating Table Toolbar (appears above table when selected) -->
-        <div v-if="isSelected && block.type === 'item_table'" class="table-floating-toolbar print-hidden"
-             style="position: absolute; top: -38px; left: 0; display: flex; align-items: center; gap: 4px; background: #1a1a2e; border: 1px solid var(--color-panel-border); padding: 4px 6px; border-radius: 6px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: auto;">
-             <button class="tb-btn" title="Add Row Below" @click.stop="addTableRow">+ Row</button>
-             <button class="tb-btn text-[#ef4444]" title="Delete Selected Row(s)" @click.stop="deleteSelectedRows">- Row</button>
-             <button class="tb-btn" title="Add Column Right" @click.stop="addTableColumn">+ Col</button>
-             <button class="tb-btn text-[#ef4444]" title="Delete Selected Column(s)" @click.stop="deleteSelectedColumns">- Col</button>
-             <button class="tb-btn text-[#f59e0b]" title="Clear Selected Cells Content" @click.stop="clearSelectedCellsContent">Clear</button>
-             <div class="tb-sep" />
-             <button class="tb-btn" title="Merge Selected Cells" @click.stop="mergeTableCells">Merge</button>
-             <div class="tb-sep" />
-             <button class="tb-btn" title="Bold Cells" @click.stop="applyTableStyle('bold')">B</button>
-             <button class="tb-btn" title="Italic Cells" @click.stop="applyTableStyle('italic')">I</button>
-             <div class="tb-sep" />
-             <button class="tb-btn" title="Align Left" @click.stop="applyTableStyle('hAlign', 'left')">←</button>
-             <button class="tb-btn" title="Align Center" @click.stop="applyTableStyle('hAlign', 'center')">↔</button>
-             <button class="tb-btn" title="Align Right" @click.stop="applyTableStyle('hAlign', 'right')">→</button>
-             <div class="tb-sep" />
-             <button class="tb-btn" title="Align Top" @click.stop="applyTableStyle('vAlign', 'top')">↑</button>
-             <button class="tb-btn" title="Align Middle" @click.stop="applyTableStyle('vAlign', 'middle')">↕</button>
-             <button class="tb-btn" title="Align Bottom" @click.stop="applyTableStyle('vAlign', 'bottom')">↓</button>
-             <div class="tb-sep" />
-             
-             <!-- BG Color picker -->
-             <div class="relative" style="display: inline-flex; align-items: center;">
-                 <button class="tb-btn text-[10px]" title="Cell BG Color" @click.stop="$refs.bgPicker.click()">🎨 BG</button>
-                 <input ref="bgPicker" type="color" style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;" 
-                        @input="applyTableStyle('bgColor', $event.target.value)" />
-             </div>
-             
-             <!-- Text Color picker -->
-             <div class="relative" style="display: inline-flex; align-items: center;">
-                 <button class="tb-btn text-[10px]" title="Cell Text Color" @click.stop="$refs.textPicker.click()">🔤 Text</button>
-                 <input ref="textPicker" type="color" style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;" 
-                        @input="applyTableStyle('textColor', $event.target.value)" />
-             </div>
-             
-             <div class="tb-sep" />
-             <select class="tb-select" style="background: #1a1a2e; color: white; border: 1px solid var(--color-panel-border); font-size: 11px; outline: none; cursor: pointer; padding: 2px 4px; border-radius: 4px;"
-                     @change="applyTableStyle('border', $event.target.value); $event.target.value = ''">
-                 <option value="" disabled selected>Border ▾</option>
-                 <option value="none">None</option>
-                 <option value="thin">Thin</option>
-                 <option value="thick">Thick</option>
-                 <option value="double">Double</option>
-             </select>
-        </div>
-
         <!-- Block content renderer -->
         <component
             :is="renderer"

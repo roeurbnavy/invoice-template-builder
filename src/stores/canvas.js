@@ -29,6 +29,7 @@ export const useCanvasStore = defineStore("canvas", () => {
   const showAlignmentGuides = ref(true);
   const previewMode = ref(false);
   const fillMode = ref(false);
+  const showPreview = ref(false);
   const editingBlockId = ref(null);
 
   // Computed
@@ -106,6 +107,7 @@ export const useCanvasStore = defineStore("canvas", () => {
     showAlignmentGuides,
     previewMode,
     fillMode,
+    showPreview,
     editingBlockId,
     paperDimensions,
     currentFormat,

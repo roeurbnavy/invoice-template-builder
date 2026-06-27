@@ -82,7 +82,7 @@ export const BLOCK_META = {
   },
   field_row: {
     icon: "Tag",
-    name: "Field Row",
+    name: "Text & Content",
     description: "Label + value pair",
   },
 
@@ -250,6 +250,13 @@ export const BLOCK_META = {
     icon: "ScanLine",
     name: "Scanner Result",
     description: "Display QR scan result as text",
+  },
+
+  // Payment
+  payment_qr: {
+    icon: "QrCode",
+    name: "Payment QR",
+    description: "QR code image with optional label",
   },
 
   // New simplified blocks

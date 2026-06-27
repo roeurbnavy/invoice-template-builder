@@ -1,5 +1,8 @@
 <script setup>
+import { computed } from "vue";
 import { useBlockStore } from "../../stores/blocks.js";
+import { useCanvasStore } from "../../stores/canvas.js";
+import { resolveBlockBinding } from "../../utils/variableResolver.js";
 
 const props = defineProps({
     block: { type: Object, required: true },
@@ -7,6 +10,13 @@ const props = defineProps({
 });
 
 const blockStore = useBlockStore();
+const canvasStore = useCanvasStore();
+
+const displayValue = computed(() => {
+    const binding = resolveBlockBinding(props.block, null, canvasStore.previewMode);
+    if (binding !== null) return String(binding);
+    return props.block.value ?? "";
+});
 </script>
 
 <template>
@@ -50,27 +60,41 @@ const blockStore = useBlockStore();
                     })
                 "
             />
-            <input
-                type="text"
-                :value="block.value ?? ''"
-                :style="{
-                    flex: 1,
-                    fontFamily: block.fontFamily ?? 'inherit',
-                    fontSize: `${block.fontSize ?? 13}px`,
-                    color: block.color ?? '#000',
-                    background: 'transparent',
-                    border: 'none',
-                    borderBottom: '1px solid rgba(0, 180, 216, 0.5)',
-                    outline: 'none',
-                    padding: '0 2px',
-                    boxSizing: 'border-box',
-                }"
-                @input="
-                    blockStore.updateBlock(block.id, {
-                        value: $event.target.value,
-                    })
-                "
-            />
+            <div style="flex: 1; display: flex; align-items: center; gap: 4px;">
+                <input
+                    type="text"
+                    :value="block.value ?? ''"
+                    :style="{
+                        flex: 1,
+                        fontFamily: block.fontFamily ?? 'inherit',
+                        fontSize: `${block.fontSize ?? 13}px`,
+                        color: block.dataBinding?.field ? 'var(--color-accent)' : block.color ?? '#000',
+                        background: 'transparent',
+                        border: 'none',
+                        borderBottom: block.dataBinding?.field
+                            ? '1px solid var(--color-accent)'
+                            : '1px solid rgba(0, 180, 216, 0.5)',
+                        outline: 'none',
+                        padding: '0 2px',
+                        boxSizing: 'border-box',
+                    }"
+                    @input="
+                        blockStore.updateBlock(block.id, {
+                            value: $event.target.value,
+                        })
+                    "
+                />
+                <span
+                    v-if="block.dataBinding?.field"
+                    :title="'Bound to: ' + block.dataBinding.field"
+                    style="
+                        font-size: 9px;
+                        color: var(--color-accent);
+                        cursor: help;
+                        flex-shrink: 0;
+                    "
+                >⚡</span>
+            </div>
         </template>
 
         <!-- Design mode: display spans -->
@@ -85,7 +109,7 @@ const blockStore = useBlockStore();
             >
                 <span v-html="block.label ?? ''"></span>:
             </span>
-            <span style="flex: 1" v-html="block.value ?? ''"></span>
+            <span style="flex: 1" v-html="displayValue"></span>
         </template>
     </div>
 </template>

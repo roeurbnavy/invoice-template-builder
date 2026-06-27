@@ -75,8 +75,9 @@ function handleDragLeave() {
 // ─── Pan (Space + drag) ───────────────────────────────────────
 function onKeyDown(e) {
   if (e.code === 'Space' && !spaceHeld.value) {
-    const tag = document.activeElement?.tagName
-    if (tag === 'INPUT' || tag === 'TEXTAREA') return
+    const el = document.activeElement
+    const tag = el?.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || el?.isContentEditable) return
     e.preventDefault()
     spaceHeld.value = true
     if (workspaceEl.value) workspaceEl.value.style.cursor = 'grab'

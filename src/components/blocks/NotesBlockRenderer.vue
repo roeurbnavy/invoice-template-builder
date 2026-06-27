@@ -1,6 +1,8 @@
 <script setup>
 import { computed, ref, watch, onMounted, nextTick } from "vue";
 import { useBlockStore } from "../../stores/blocks.js";
+import { useCanvasStore } from "../../stores/canvas.js";
+import { resolveBlockBinding } from "../../utils/variableResolver.js";
 
 const props = defineProps({
     block: { type: Object, required: true },
@@ -8,8 +10,13 @@ const props = defineProps({
 });
 
 const blockStore = useBlockStore();
+const canvasStore = useCanvasStore();
 
-const displayText = computed(() => props.block.content ?? "");
+const displayText = computed(() => {
+    const binding = resolveBlockBinding(props.block, null, canvasStore.previewMode);
+    if (binding !== null) return String(binding);
+    return props.block.content ?? "";
+});
 
 const style = computed(() => ({
     width: "100%",

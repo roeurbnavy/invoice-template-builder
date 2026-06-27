@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { DOCUMENT_SCHEMAS } from '../constants/documentSchemas.js'
 
 const CURRENCIES = [
   { code: 'USD', symbol: '$',  name: 'US Dollar' },
@@ -36,9 +37,7 @@ const FONTS = [
   { name: 'Times New Roman', value: '"Times New Roman", serif' },
 ]
 
-const DOCUMENT_TYPES = [
-  'Custom',
-]
+const DOCUMENT_TYPES = Object.keys(DOCUMENT_SCHEMAS)
 
 export const useSettingsStore = defineStore('settings', () => {
   const company = ref('My Company')

@@ -1103,5 +1103,170 @@ export const DOCUMENT_PRESETS = {
     }
   ],
 
+  'Deposit': [
+    {
+      type: BLOCK_TYPES.COMPANY_INFO,
+      xPercent: 0.30,
+      yPercent: 0.05,
+      widthPercent: 0.40,
+      heightPercent: 0.08,
+      defaultProps: {
+        showLogo: true,
+        showName: true,
+        showAddress: true,
+        showPhone: true,
+        showEmail: false,
+        textAlign: 'center'
+      }
+    },
+    {
+      type: BLOCK_TYPES.DOCUMENT_TITLE,
+      xPercent: 0.30,
+      yPercent: 0.14,
+      widthPercent: 0.40,
+      heightPercent: 0.05,
+      defaultProps: {
+        content: 'DEPOSIT / PREPAYMENT',
+        textAlign: 'center',
+        fontSize: 22,
+        fontWeight: 'bold'
+      }
+    },
+    {
+      type: BLOCK_TYPES.FIELD_ROW,
+      xPercent: 0.60,
+      yPercent: 0.21,
+      widthPercent: 0.35,
+      heightPercent: 0.03,
+      defaultProps: {
+        label: 'Deposit No:',
+        value: 'DEP-0001',
+        labelWidth: 90,
+        textAlign: 'right'
+      }
+    },
+    {
+      type: BLOCK_TYPES.FIELD_ROW,
+      xPercent: 0.60,
+      yPercent: 0.24,
+      widthPercent: 0.35,
+      heightPercent: 0.03,
+      defaultProps: {
+        label: 'Date:',
+        value: '23/06/2026',
+        labelWidth: 90,
+        textAlign: 'right'
+      }
+    },
+    {
+      type: BLOCK_TYPES.FIELD_ROW,
+      xPercent: 0.60,
+      yPercent: 0.27,
+      widthPercent: 0.35,
+      heightPercent: 0.03,
+      defaultProps: {
+        label: 'Inv Ref:',
+        value: 'INV-2026-0001',
+        labelWidth: 90,
+        textAlign: 'right'
+      }
+    },
+    {
+      type: BLOCK_TYPES.CLIENT_INFO,
+      xPercent: 0.05,
+      yPercent: 0.20,
+      widthPercent: 0.40,
+      heightPercent: 0.10,
+      defaultProps: {
+        label: 'Deposited By',
+        showName: true,
+        showAddress: true,
+        showPhone: true,
+        showEmail: false
+      }
+    },
+    {
+      type: BLOCK_TYPES.ITEM_TABLE,
+      xPercent: 0.05,
+      yPercent: 0.33,
+      widthPercent: 0.90,
+      heightPercent: 0.20,
+      defaultProps: {
+        emptyRows: 2,
+        showRowNumbers: false,
+        columns: [
+          { id: 'description', label: 'Description', width: 70, visible: true },
+          { id: 'total', label: 'Amount', width: 30, visible: true }
+        ]
+      }
+    },
+    {
+      type: BLOCK_TYPES.TOTALS_BLOCK,
+      xPercent: 0.60,
+      yPercent: 0.55,
+      widthPercent: 0.35,
+      heightPercent: 0.18,
+      defaultProps: {
+        showSubtotal: false,
+        showDiscount: false,
+        showTax: false,
+        showTotal: true,
+        showBalance: true,
+        totalLabel: 'Total Amount:',
+        balanceLabel: 'Balance Due:',
+        fontSize: 13
+      }
+    },
+    {
+      type: BLOCK_TYPES.FIELD_ROW,
+      xPercent: 0.05,
+      yPercent: 0.75,
+      widthPercent: 0.50,
+      heightPercent: 0.03,
+      defaultProps: {
+        label: 'Payment Method:',
+        value: 'Cash',
+        labelWidth: 130
+      }
+    },
+    {
+      type: BLOCK_TYPES.BANK_DETAILS,
+      xPercent: 0.05,
+      yPercent: 0.80,
+      widthPercent: 0.40,
+      heightPercent: 0.08,
+      defaultProps: {
+        label: 'Deposit To',
+        showBankName: true,
+        showAccountNo: true,
+        showAccountName: true
+      }
+    },
+    {
+      type: BLOCK_TYPES.SIGNATURE_LINE,
+      xPercent: 0.55,
+      yPercent: 0.88,
+      widthPercent: 0.40,
+      heightPercent: 0.06,
+      defaultProps: {
+        label: 'Received By',
+        showDate: true
+      }
+    },
+    {
+      type: BLOCK_TYPES.FOOTER_NOTE,
+      xPercent: 0.05,
+      yPercent: 0.95,
+      widthPercent: 0.90,
+      heightPercent: 0.03,
+      defaultProps: {
+        label: '',
+        content: 'This deposit is non-refundable and will be applied to the final invoice.',
+        textAlign: 'center',
+        fontSize: 9
+      }
+    }
+  ],
+
   'Custom': []
 }

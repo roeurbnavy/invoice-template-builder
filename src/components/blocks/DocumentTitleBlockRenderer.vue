@@ -1,6 +1,8 @@
 <script setup>
 import { computed, ref, watch, onMounted } from "vue";
 import { useBlockStore } from "../../stores/blocks.js";
+import { useCanvasStore } from "../../stores/canvas.js";
+import { resolveBlockBinding } from "../../utils/variableResolver.js";
 
 const props = defineProps({
     block: { type: Object, required: true },
@@ -8,6 +10,13 @@ const props = defineProps({
 });
 
 const blockStore = useBlockStore();
+const canvasStore = useCanvasStore();
+
+const displayContent = computed(() => {
+    const binding = resolveBlockBinding(props.block, null, canvasStore.previewMode);
+    if (binding !== null) return String(binding);
+    return props.block.content ?? "INVOICE";
+});
 
 const baseStyle = computed(() => ({
     fontFamily: props.block.fontFamily ?? "inherit",
@@ -72,7 +81,7 @@ watch(
             blockStore.updateBlock(block.id, { content: $event.target.innerHTML })
         "
     />
-    <div v-else :style="style" v-html="block.content ?? 'INVOICE'"></div>
+    <div v-else :style="style" v-html="displayContent"></div>
 </template>
 
 <style scoped>

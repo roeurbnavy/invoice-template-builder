@@ -115,19 +115,21 @@ export const useBlockStore = defineStore('blocks', () => {
   function loadPreset(documentType, width, height) {
     const preset = DOCUMENT_PRESETS[documentType]
     if (!preset) return
-    const newBlocks = preset.map(pb => {
-      const x = Math.round(pb.xPercent * width)
-      const y = Math.round(pb.yPercent * height)
-      const w = Math.round(pb.widthPercent * width)
-      const h = Math.round(pb.heightPercent * height)
-      return getBlockDefaults(pb.type, {
-        x,
-        y,
-        width: w,
-        height: h,
-        ...pb.defaultProps
+    const newBlocks = preset
+      .map(pb => {
+        const x = Math.round(pb.xPercent * width)
+        const y = Math.round(pb.yPercent * height)
+        const w = Math.round(pb.widthPercent * width)
+        const h = Math.round(pb.heightPercent * height)
+        return getBlockDefaults(pb.type, {
+          x,
+          y,
+          width: w,
+          height: h,
+          ...pb.defaultProps
+        })
       })
-    })
+      .filter(Boolean)
     setBlocks(newBlocks)
   }
 
