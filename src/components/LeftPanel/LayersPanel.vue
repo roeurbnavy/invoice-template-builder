@@ -1,13 +1,19 @@
 <script setup>
 import { computed } from 'vue'
 import { useBlockStore } from '../../stores/blocks.js'
+import { useCanvasStore } from '../../stores/canvas.js'
 import { BLOCK_META } from '../../constants/blockMeta.js'
 import { Eye, EyeOff, Lock, Trash2, GripVertical } from '@lucide/vue'
 import * as icons from '@lucide/vue'
 
 const blockStore = useBlockStore()
+const canvasStore = useCanvasStore()
 
 const layers = computed(() => [...blockStore.blocks].reverse()) // top layer first
+
+function isHiddenOnFormat(block) {
+  return block.visibleFormats && !block.visibleFormats.includes(canvasStore.formatId)
+}
 
 function getIcon(type) {
   const meta = BLOCK_META[type]
@@ -56,8 +62,12 @@ function deleteBlock(block) {
       <component :is="getIcon(block.type)" :size="12" style="flex-shrink: 0; color: var(--color-panel-muted)" />
 
       <!-- Name -->
-      <span style="flex: 1; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
+      <span 
+        style="flex: 1; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap"
+        :style="isHiddenOnFormat(block) ? { color: 'var(--color-panel-muted)', opacity: 0.6 } : {}"
+      >
         {{ getName(block) }}
+        <span v-if="isHiddenOnFormat(block)" style="font-size: 9px; opacity: 0.7; margin-left: 4px">(hidden)</span>
       </span>
 
       <!-- Controls -->

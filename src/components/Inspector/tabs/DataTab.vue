@@ -157,6 +157,17 @@ const sampleDataRows = computed(() => {
         });
 });
 
+// Map of field.key → short sample value string for showing in <option> labels
+const sampleValueMap = computed(() => {
+    const map = {};
+    for (const row of sampleDataRows.value) {
+        // Truncate long values for select option labels
+        const val = row.sampleValue;
+        map[row.key] = val.length > 28 ? val.slice(0, 26) + '…' : val;
+    }
+    return map;
+});
+
 const sampleDataGroups = computed(() => {
     const groups = {};
     for (const row of sampleDataRows.value) {
@@ -234,7 +245,7 @@ const sampleDataGroups = computed(() => {
             </div>
 
             <!-- Field selector -->
-            <div class="field-group">
+            <div v-if="block.type !== 'image'" class="field-group">
                 <div class="field-label">Data Field</div>
                 <select
                     class="field-select"
@@ -254,25 +265,26 @@ const sampleDataGroups = computed(() => {
                             :disabled="!bindableFields.some(f => f.key === field.key)"
                         >
                             {{ field.label }}
-                            <template v-if="field.type !== 'string'">
-                                ({{ field.type }})
-                            </template>
+                            <template v-if="field.type !== 'string'"> ({{ field.type }})</template>
+                            <template v-if="sampleValueMap[field.key]"> — {{ sampleValueMap[field.key] }}</template>
                         </option>
                     </optgroup>
                 </select>
-            </div>
 
-            <!-- Bound field info -->
-            <div v-if="hasBinding" class="field-group">
-                <div class="field-label">Field Path</div>
-                <div class="field-path">{{ currentBinding.field }}</div>
-                <div class="field-type-badge" :class="fieldTypeHint">
-                    {{ fieldTypeHint }}
+                <!-- Inline preview chip shown immediately after a field is selected -->
+                <div v-if="hasBinding" class="binding-preview-chip">
+                    <span class="binding-chip-icon">⚡</span>
+                    <span class="binding-chip-path">{{ currentBinding.field }}</span>
+                    <span class="binding-chip-sep">→</span>
+                    <span class="binding-chip-value">
+                        {{ resolvedPreview !== null ? resolvedPreview : '—' }}
+                    </span>
+                    <span class="binding-chip-type" :class="'type-' + fieldTypeHint">{{ fieldTypeHint }}</span>
                 </div>
             </div>
 
             <!-- Format options -->
-            <div v-if="hasBinding && formatOptions.length > 0" class="field-group">
+            <div v-if="hasBinding && formatOptions.length > 0 && block.type !== 'image'" class="field-group">
                 <div class="field-label">Format Settings</div>
                 <div
                     v-for="opt in formatOptions"
@@ -313,22 +325,9 @@ const sampleDataGroups = computed(() => {
                 </div>
             </div>
 
-            <!-- Preview -->
-            <div v-if="hasBinding" class="field-group">
-                <div class="field-label">Preview</div>
-                <div class="preview-box">
-                    <span v-if="resolvedPreview !== null" class="preview-value">
-                        {{ resolvedPreview }}
-                    </span>
-                    <span v-else class="preview-empty">
-                        No data available
-                    </span>
-                </div>
-            </div>
-
             <!-- Unbind button -->
             <button
-                v-if="hasBinding"
+                v-if="hasBinding && block.type !== 'image'"
                 class="unbind-btn"
                 @click="updateBinding(null); commitHistory()"
             >
@@ -354,7 +353,7 @@ const sampleDataGroups = computed(() => {
             </template>
 
             <!-- Help section for first-time users -->
-            <div v-if="!hasBinding" class="help-section">
+            <div v-if="!hasBinding && block.type !== 'image'" class="help-section">
                 <div class="help-title">Quick Start: Bind a Field</div>
                 <div class="help-step">
                     <span class="help-step-num">1</span>
@@ -381,6 +380,7 @@ const sampleDataGroups = computed(() => {
             </div>
 
             <!-- Sample Data Preview toggle -->
+            <template v-if="block.type !== 'image'">
             <div class="divider" />
             <div class="preview-toggle" @click="showSampleData = !showSampleData">
                 <span class="preview-toggle-icon">{{ showSampleData ? '▼' : '▶' }}</span>
@@ -414,9 +414,10 @@ const sampleDataGroups = computed(() => {
                     No sample data for this document type.
                 </div>
             </div>
+            </template><!-- end v-if not image -->
 
             <!-- Instruction for non-bound blocks -->
-            <div v-if="!hasBinding && bindableFields.length === 0" class="no-fields">
+            <div v-if="!hasBinding && bindableFields.length === 0 && block.type !== 'image'" class="no-fields">
                 No data fields available for this document type.
             </div>
         </div>
@@ -825,4 +826,75 @@ const sampleDataGroups = computed(() => {
 .clear-btn:hover {
     background: #fef2f2;
 }
+
+/* ── Binding preview chip (shown below the select after a field is picked) ── */
+.binding-preview-chip {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 7px;
+    padding: 7px 10px;
+    background: rgba(0, 180, 216, 0.07);
+    border: 1px solid rgba(0, 180, 216, 0.25);
+    border-radius: 6px;
+    font-size: 11px;
+    line-height: 1.4;
+    animation: chip-fade-in 0.18s ease;
+}
+
+@keyframes chip-fade-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.binding-chip-icon {
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.binding-chip-path {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    color: var(--color-panel-muted);
+    background: var(--color-panel-input);
+    padding: 1px 5px;
+    border-radius: 3px;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.binding-chip-sep {
+    color: var(--color-panel-muted);
+    font-size: 10px;
+}
+
+.binding-chip-value {
+    font-weight: 600;
+    color: var(--color-accent);
+    font-size: 11px;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 130px;
+}
+
+.binding-chip-type {
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 5px;
+    border-radius: 3px;
+    background: var(--color-panel-border);
+    color: var(--color-panel-muted);
+    flex-shrink: 0;
+}
+.binding-chip-type.type-currency  { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
+.binding-chip-type.type-number    { background: rgba(99, 102, 241, 0.15); color: #6366f1; }
+.binding-chip-type.type-date      { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+.binding-chip-type.type-string    { background: rgba(0, 180, 216, 0.12); color: var(--color-accent); }
 </style>

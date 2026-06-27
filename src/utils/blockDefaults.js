@@ -178,13 +178,25 @@ export const BLOCK_DEFAULTS = {
   [BLOCK_TYPES.SIGNATURE_LINE]: {
     ...BASE,
     width: 200,
-    height: 60,
+    height: 80,
     label: "Authorized Signature",
+    signerName: "",
     showDate: true,
+    dateText: "",
+    signatureType: "none",
+    signatureText: "",
+    signatureFont: "Dancing Script",
+    signatureFontSize: 24,
+    signatureColor: "#0f2c59",
+    signatureImage: null,
+    signatureScale: 1.0,
+    signatureRotation: -2,
+    lineWidth: 1,
     ...TEXT_STYLE,
     fontSize: 11,
     color: "#555555",
   },
+
 
   [BLOCK_TYPES.COMPANY_INFO]: {
     ...BASE,
@@ -270,17 +282,6 @@ export const BLOCK_DEFAULTS = {
       { label: "Credit", checked: false },
     ],
     ...TEXT_STYLE,
-  },
-
-  [BLOCK_TYPES.STAMP_BOX]: {
-    ...BASE,
-    width: 100,
-    height: 100,
-    label: "Stamp",
-    borderWidth: 2,
-    borderColor: "#000000",
-    borderStyle: "solid",
-    borderRadius: 0,
   },
 
   [BLOCK_TYPES.CUT_LINE]: {

@@ -15,6 +15,11 @@ const settingsStore = useSettingsStore();
 
 const editingRowId = ref(null);
 const showRowTypeMenu = ref(false);
+const sigImageInput = ref(null);
+
+function triggerSignatureUpload() {
+    if (sigImageInput.value) sigImageInput.value.click();
+}
 
 function updateProp(prop, val) {
     blockStore.updateBlock(props.block.id, { [prop]: val });
@@ -33,6 +38,39 @@ function handleInput(prop, e, isNum = true) {
 
 function handleCheckbox(prop, e) {
     updateProp(prop, e.target.checked);
+    commitHistory();
+}
+
+function handleSignatureUpload(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            updateProp('signatureImage', event.target.result);
+            commitHistory();
+        };
+        reader.readAsDataURL(file);
+    }
+    e.target.value = '';
+}
+
+// When changing signature type on an existing block that may not have all
+// the new properties yet, we patch all defaults in one shot so the
+// relevant sub-panel immediately renders with proper values.
+function handleSignatureTypeChange(newType) {
+    const patch = { signatureType: newType };
+    const b = props.block;
+    if (b.signatureText === undefined)       patch.signatureText = '';
+    if (b.signatureFont === undefined)       patch.signatureFont = 'Dancing Script';
+    if (b.signatureFontSize === undefined)   patch.signatureFontSize = 24;
+    if (b.signatureColor === undefined)      patch.signatureColor = '#0f2c59';
+    if (b.signatureImage === undefined)      patch.signatureImage = null;
+    if (b.signatureScale === undefined)      patch.signatureScale = 1.0;
+    if (b.signatureRotation === undefined)   patch.signatureRotation = -2;
+    if (b.lineWidth === undefined)           patch.lineWidth = 1;
+    if (b.signerName === undefined)          patch.signerName = '';
+    if (b.dateText === undefined)            patch.dateText = '';
+    blockStore.updateBlock(b.id, patch);
     commitHistory();
 }
 
@@ -834,7 +872,169 @@ function moveField(fromIndex, toIndex) {
             class="field-group"
         >
             <div class="field-label">Signature Settings</div>
-            <p style="font-size:11px;color:var(--color-panel-muted);margin-bottom:10px">Edit signature line label, signer name, and date directly on the canvas.</p>
+            <p style="font-size:11px;color:var(--color-panel-muted);margin-bottom:12px">Edit signature line label, signer name, and date directly on the canvas.</p>
+
+            <!-- Signature Type Select -->
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Signature Type</label>
+                <select
+                    :value="block.signatureType || 'none'"
+                    class="inp"
+                    style="width: 100%;"
+                    @change="handleSignatureTypeChange($event.target.value)"
+                >
+                    <option value="none">Physical (Blank space to sign)</option>
+                    <option value="text">Typed Script (Handwritten font)</option>
+                    <option value="image">Upload Image (Digital Signature)</option>
+                </select>
+            </div>
+
+            <!-- Typed Script Signature Section -->
+            <div v-if="(block.signatureType || 'none') === 'text'" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; padding: 8px; border: 1px solid var(--color-panel-border); border-radius: 6px; background: rgba(255,255,255,0.02);">
+                <div>
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Signature Text</label>
+                    <input
+                        type="text"
+                        :value="block.signatureText ?? ''"
+                        class="inp"
+                        placeholder="e.g. John Doe"
+                        @input="updateProp('signatureText', $event.target.value)"
+                        @blur="commitHistory"
+                    />
+                </div>
+                <div class="field-row">
+                    <div>
+                        <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Signature Font</label>
+                        <select
+                            :value="block.signatureFont || 'Dancing Script'"
+                            class="inp"
+                            @change="updateProp('signatureFont', $event.target.value); commitHistory();"
+                        >
+                            <option value="Dancing Script">Dancing Script</option>
+                            <option value="Caveat">Caveat</option>
+                            <option value="Pacifico">Pacifico</option>
+                            <option value="Yellowtail">Yellowtail</option>
+                            <option value="Mrs Saint Delafield">Mrs Saint Delafield</option>
+                            <option value="Reenie Beanie">Reenie Beanie</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Font Size</label>
+                        <div class="field-unit">
+                            <input
+                                type="number"
+                                :value="block.signatureFontSize ?? 24"
+                                class="inp"
+                                min="12"
+                                max="60"
+                                @input="handleInput('signatureFontSize', $event)"
+                                @blur="commitHistory"
+                            />
+                            <span class="field-unit-label">px</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Ink Color</label>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <input
+                            type="color"
+                            :value="block.signatureColor || '#0f2c59'"
+                            class="color-picker-input"
+                            @input="updateProp('signatureColor', $event.target.value)"
+                            @change="commitHistory"
+                        />
+                        <input
+                            type="text"
+                            :value="block.signatureColor ?? '#0f2c59'"
+                            class="inp"
+                            @input="updateProp('signatureColor', $event.target.value)"
+                            @blur="commitHistory"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload Signature Image Section -->
+            <div v-if="(block.signatureType || 'none') === 'image'" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; padding: 8px; border: 1px solid var(--color-panel-border); border-radius: 6px; background: rgba(255,255,255,0.02);">
+                <div>
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Signature Image</label>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <button
+                            class="btn btn-ghost"
+                            style="flex: 1; font-size: 11px; padding: 5px 0;"
+                            @click="triggerSignatureUpload"
+                        >
+                            {{ block.signatureImage ? 'Replace Image' : 'Upload Image' }}
+                        </button>
+                        <button
+                            v-if="block.signatureImage"
+                            class="btn btn-ghost text-danger"
+                            style="font-size: 11px; padding: 5px 10px;"
+                            @click="updateProp('signatureImage', null); commitHistory();"
+                        >
+                            Clear
+                        </button>
+                        <input
+                            ref="sigImageInput"
+                            type="file"
+                            accept="image/*"
+                            style="display: none;"
+                            @change="handleSignatureUpload"
+                        />
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Scale</label>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input
+                            type="range"
+                            min="0.2"
+                            max="2.5"
+                            step="0.05"
+                            :value="block.signatureScale ?? 1.0"
+                            style="flex: 1; height: 4px; background: var(--color-panel-border); border-radius: 2px; outline: none; -webkit-appearance: none;"
+                            @input="updateProp('signatureScale', parseFloat($event.target.value)); commitHistory();"
+                        />
+                        <span style="font-size: 11px; min-width: 32px; text-align: right;">{{ Math.round((block.signatureScale ?? 1.0) * 100) }}%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Common Layout controls -->
+            <div class="field-row" style="margin-bottom: 10px;">
+                <div>
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Line Thickness</label>
+                    <div class="field-unit">
+                        <input
+                            type="number"
+                            :value="block.lineWidth ?? 1"
+                            class="inp"
+                            min="1"
+                            max="5"
+                            @input="handleInput('lineWidth', $event)"
+                            @blur="commitHistory"
+                        />
+                        <span class="field-unit-label">px</span>
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Rotation Angle</label>
+                    <div class="field-unit">
+                        <input
+                            type="number"
+                            :value="block.signatureRotation ?? -2"
+                            class="inp"
+                            min="-15"
+                            max="15"
+                            step="1"
+                            @input="handleInput('signatureRotation', $event)"
+                            @blur="commitHistory"
+                        />
+                        <span class="field-unit-label">deg</span>
+                    </div>
+                </div>
+            </div>
 
             <div
                 style="
@@ -1253,6 +1453,57 @@ function moveField(fromIndex, toIndex) {
                         />
                         <span class="field-unit-label">px</span>
                     </div>
+                </div>
+            </div>
+
+            <!-- Borders & Padding -->
+            <div class="field-row" style="margin-top: 8px; margin-bottom: 8px;">
+                <div>
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Border Style</label>
+                    <select
+                        :value="block.borderStyle || 'solid'"
+                        class="inp"
+                        @change="updateProp('borderStyle', $event.target.value); commitHistory();"
+                    >
+                        <option value="solid">Solid</option>
+                        <option value="dashed">Dashed</option>
+                        <option value="dotted">Dotted</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Cell Padding</label>
+                    <div class="field-unit">
+                        <input
+                            type="number"
+                            :value="block.cellPadding"
+                            class="inp"
+                            min="0"
+                            max="30"
+                            placeholder="Auto"
+                            @input="handleInput('cellPadding', $event)"
+                            @blur="commitHistory"
+                        />
+                        <span class="field-unit-label">px</span>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Border Color</label>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <input
+                        type="color"
+                        :value="block.borderColor && block.borderColor.startsWith('#') ? block.borderColor : '#e0e0e0'"
+                        class="color-picker-input"
+                        @input="updateProp('borderColor', $event.target.value)"
+                        @change="commitHistory"
+                    />
+                    <input
+                        type="text"
+                        :value="block.borderColor ?? '#e0e0e0'"
+                        class="inp"
+                        @input="updateProp('borderColor', $event.target.value)"
+                        @blur="commitHistory"
+                    />
                 </div>
             </div>
 
@@ -1795,561 +2046,7 @@ function moveField(fromIndex, toIndex) {
                 </button>
             </div>
 
-            <!-- ROW TYPES SECTION -->
-            <div class="divider" />
-            <div class="field-label" style="margin-top: 8px">Row Types</div>
-            <div style="margin-bottom: 10px;">
-                <select
-                    class="inp"
-                    style="width: 100%; font-size: 11px; padding: 5px; height: 28px;"
-                    @change="if ($event.target.value) { addSpecialRow($event.target.value); $event.target.value = ''; }"
-                >
-                    <option value="">+ Add Row Type...</option>
-                    <option value="summary">Summary Row (bold text, custom bg)</option>
-                    <option value="section_header">Section Header Row (full width label)</option>
-                    <option value="split">Split Row (left details + right totals)</option>
-                    <option value="divider">Divider Row (thin horizontal line)</option>
-                </select>
-            </div>
-
-            <!-- List of added special rows -->
-            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
-                <div
-                    v-for="(row, rIdx) in (block.specialRows || [])"
-                    :key="row.id"
-                    style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--color-panel-border); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 8px;"
-                >
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <span style="font-size: 11px; font-weight: bold; color: var(--color-panel-primary); text-transform: capitalize;">
-                            {{ row.type.replace('_', ' ') }} Row
-                        </span>
-                        <div style="display: flex; gap: 6px;">
-                            <button
-                                class="btn btn-ghost"
-                                style="font-size: 10px; padding: 2px 6px;"
-                                @click="toggleEditSpecialRow(row.id)"
-                            >
-                                ✏ {{ editingRowId === row.id ? 'Close' : 'Edit' }}
-                            </button>
-                            <button
-                                class="btn btn-ghost text-danger"
-                                style="font-size: 10px; padding: 2px 6px;"
-                                @click="deleteSpecialRow(rIdx)"
-                            >
-                                🗑 Delete
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Inline edit fields -->
-                    <div
-                        v-if="editingRowId === row.id"
-                        style="display: flex; flex-direction: column; gap: 8px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.1);"
-                    >
-                        <!-- Summary Row fields -->
-                        <template v-if="row.type === 'summary'">
-                            <div>
-                                <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Text</label>
-                                <input
-                                    type="text"
-                                    :value="row.text"
-                                    class="inp"
-                                    @input="updateSpecialRowProp(row.id, 'text', $event.target.value)"
-                                />
-                            </div>
-                            <div class="field-row">
-                                <div>
-                                    <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Bg Color</label>
-                                    <div style="display: flex; gap: 4px; align-items: center;">
-                                        <input
-                                            type="color"
-                                            :value="row.bgColor || '#ffffff'"
-                                            class="color-picker-input"
-                                            @input="updateSpecialRowProp(row.id, 'bgColor', $event.target.value)"
-                                        />
-                                        <input
-                                            type="text"
-                                            :value="row.bgColor"
-                                            class="inp"
-                                            placeholder="Default"
-                                            @input="updateSpecialRowProp(row.id, 'bgColor', $event.target.value)"
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Text Color</label>
-                                    <div style="display: flex; gap: 4px; align-items: center;">
-                                        <input
-                                            type="color"
-                                            :value="row.textColor || '#333333'"
-                                            class="color-picker-input"
-                                            @input="updateSpecialRowProp(row.id, 'textColor', $event.target.value)"
-                                        />
-                                        <input
-                                            type="text"
-                                            :value="row.textColor"
-                                            class="inp"
-                                            placeholder="Default"
-                                            @input="updateSpecialRowProp(row.id, 'textColor', $event.target.value)"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <div>
-                                <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Font Weight</label>
-                                <select
-                                    :value="row.fontWeight || 'bold'"
-                                    class="inp"
-                                    @change="updateSpecialRowProp(row.id, 'fontWeight', $event.target.value)"
-                                >
-                                    <option value="normal">Normal</option>
-                                    <option value="bold">Bold</option>
-                                </select>
-                            </div>
-                            <!-- Alignment -->
-                            <div style="display: flex; gap: 12px; align-items: center;">
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <span style="font-size: 9px; color: var(--color-panel-muted);">H:</span>
-                                    <div class="align-btn-group">
-                                        <button v-for="opt in [{v:'left',label:'←'},{v:'center',label:'↔'},{v:'right',label:'→'}]" :key="opt.v" class="align-btn" :class="{ active: (row.hAlign ?? 'left') === opt.v }" @click="updateSpecialRowProp(row.id, 'hAlign', opt.v)">{{ opt.label }}</button>
-                                    </div>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <span style="font-size: 9px; color: var(--color-panel-muted);">V:</span>
-                                    <div class="align-btn-group">
-                                        <button v-for="opt in [{v:'top',label:'↑'},{v:'middle',label:'↕'},{v:'bottom',label:'↓'}]" :key="opt.v" class="align-btn" :class="{ active: (row.vAlign ?? 'middle') === opt.v }" @click="updateSpecialRowProp(row.id, 'vAlign', opt.v)">{{ opt.label }}</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </template>
-                        
-                        <!-- Section Header fields -->
-                        <template v-if="row.type === 'section_header'">
-                            <div>
-                                <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Label Text</label>
-                                <input
-                                    type="text"
-                                    :value="row.text"
-                                    class="inp"
-                                    @input="updateSpecialRowProp(row.id, 'text', $event.target.value)"
-                                />
-                            </div>
-                            <div class="field-row">
-                                <div>
-                                    <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Bg Color</label>
-                                    <div style="display: flex; gap: 4px; align-items: center;">
-                                        <input
-                                            type="color"
-                                            :value="row.bgColor || '#ffffff'"
-                                            class="color-picker-input"
-                                            @input="updateSpecialRowProp(row.id, 'bgColor', $event.target.value)"
-                                        />
-                                        <input
-                                            type="text"
-                                            :value="row.bgColor"
-                                            class="inp"
-                                            placeholder="Default"
-                                            @input="updateSpecialRowProp(row.id, 'bgColor', $event.target.value)"
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Text Color</label>
-                                    <div style="display: flex; gap: 4px; align-items: center;">
-                                        <input
-                                            type="color"
-                                            :value="row.textColor || '#333333'"
-                                            class="color-picker-input"
-                                            @input="updateSpecialRowProp(row.id, 'textColor', $event.target.value)"
-                                        />
-                                        <input
-                                            type="text"
-                                            :value="row.textColor"
-                                            class="inp"
-                                            placeholder="Default"
-                                            @input="updateSpecialRowProp(row.id, 'textColor', $event.target.value)"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Alignment -->
-                            <div style="display: flex; gap: 12px; align-items: center;">
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <span style="font-size: 9px; color: var(--color-panel-muted);">H:</span>
-                                    <div class="align-btn-group">
-                                        <button v-for="opt in [{v:'left',label:'←'},{v:'center',label:'↔'},{v:'right',label:'→'}]" :key="opt.v" class="align-btn" :class="{ active: (row.hAlign ?? 'left') === opt.v }" @click="updateSpecialRowProp(row.id, 'hAlign', opt.v)">{{ opt.label }}</button>
-                                    </div>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <span style="font-size: 9px; color: var(--color-panel-muted);">V:</span>
-                                    <div class="align-btn-group">
-                                        <button v-for="opt in [{v:'top',label:'↑'},{v:'middle',label:'↕'},{v:'bottom',label:'↓'}]" :key="opt.v" class="align-btn" :class="{ active: (row.vAlign ?? 'middle') === opt.v }" @click="updateSpecialRowProp(row.id, 'vAlign', opt.v)">{{ opt.label }}</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </template>
-                        
-                        <!-- Split Row fields -->
-                        <template v-if="row.type === 'split'">
-                            <div>
-                                <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Left Cell (Bank Details, Notes)</label>
-                                <textarea
-                                    :value="row.leftText"
-                                    class="inp"
-                                    style="height: 60px; font-family: monospace; font-size: 10px; resize: vertical;"
-                                    @input="updateSpecialRowProp(row.id, 'leftText', $event.target.value)"
-                                />
-                            </div>
-                            <!-- Left cell alignment -->
-                            <div style="display: flex; gap: 12px; align-items: center; padding-left: 2px;">
-                                <span style="font-size: 9px; color: var(--color-panel-muted); white-space: nowrap;">Left:</span>
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <span style="font-size: 9px; color: var(--color-panel-muted);">H:</span>
-                                    <div class="align-btn-group">
-                                        <button v-for="opt in [{v:'left',label:'←'},{v:'center',label:'↔'},{v:'right',label:'→'}]" :key="opt.v" class="align-btn" :class="{ active: (row.leftHAlign ?? 'left') === opt.v }" @click="updateSpecialRowProp(row.id, 'leftHAlign', opt.v)">{{ opt.label }}</button>
-                                    </div>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <span style="font-size: 9px; color: var(--color-panel-muted);">V:</span>
-                                    <div class="align-btn-group">
-                                        <button v-for="opt in [{v:'top',label:'↑'},{v:'middle',label:'↕'},{v:'bottom',label:'↓'}]" :key="opt.v" class="align-btn" :class="{ active: (row.leftVAlign ?? 'top') === opt.v }" @click="updateSpecialRowProp(row.id, 'leftVAlign', opt.v)">{{ opt.label }}</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div>
-                                <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Right Cell (Totals Summary)</label>
-                                <textarea
-                                    :value="row.rightText"
-                                    class="inp"
-                                    style="height: 60px; font-family: monospace; font-size: 10px; resize: vertical;"
-                                    @input="updateSpecialRowProp(row.id, 'rightText', $event.target.value)"
-                                />
-                            </div>
-                            <!-- Right cell alignment -->
-                            <div style="display: flex; gap: 12px; align-items: center; padding-left: 2px;">
-                                <span style="font-size: 9px; color: var(--color-panel-muted); white-space: nowrap;">Right:</span>
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <span style="font-size: 9px; color: var(--color-panel-muted);">H:</span>
-                                    <div class="align-btn-group">
-                                        <button v-for="opt in [{v:'left',label:'←'},{v:'center',label:'↔'},{v:'right',label:'→'}]" :key="opt.v" class="align-btn" :class="{ active: (row.rightHAlign ?? 'right') === opt.v }" @click="updateSpecialRowProp(row.id, 'rightHAlign', opt.v)">{{ opt.label }}</button>
-                                    </div>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <span style="font-size: 9px; color: var(--color-panel-muted);">V:</span>
-                                    <div class="align-btn-group">
-                                        <button v-for="opt in [{v:'top',label:'↑'},{v:'middle',label:'↕'},{v:'bottom',label:'↓'}]" :key="opt.v" class="align-btn" :class="{ active: (row.rightVAlign ?? 'top') === opt.v }" @click="updateSpecialRowProp(row.id, 'rightVAlign', opt.v)">{{ opt.label }}</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="field-row">
-                                <div>
-                                    <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Left Width %</label>
-                                    <input
-                                        type="number"
-                                        :value="row.leftWidth ?? 60"
-                                        min="10"
-                                        max="90"
-                                        class="inp"
-                                        @input="updateSpecialRowProp(row.id, 'leftWidth', parseFloat($event.target.value) || 60)"
-                                    />
-                                </div>
-                                <div>
-                                    <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Right Width %</label>
-                                    <input
-                                        type="text"
-                                        :value="100 - (row.leftWidth ?? 60) + '% (Auto)'"
-                                        class="inp"
-                                        disabled
-                                    />
-                                </div>
-                            </div>
-                        </template>
-                        
-                        <!-- Divider Row fields -->
-                        <template v-if="row.type === 'divider'">
-                            <div class="field-row">
-                                <div>
-                                    <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Line Color</label>
-                                    <div style="display: flex; gap: 4px; align-items: center;">
-                                        <input
-                                            type="color"
-                                            :value="row.color || '#e0e0e0'"
-                                            class="color-picker-input"
-                                            @input="updateSpecialRowProp(row.id, 'color', $event.target.value)"
-                                        />
-                                        <input
-                                            type="text"
-                                            :value="row.color"
-                                            class="inp"
-                                            placeholder="Default"
-                                            @input="updateSpecialRowProp(row.id, 'color', $event.target.value)"
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Thickness (px)</label>
-                                    <input
-                                        type="number"
-                                        :value="row.thickness ?? 1"
-                                        min="1"
-                                        max="10"
-                                        class="inp"
-                                        @input="updateSpecialRowProp(row.id, 'thickness', parseFloat($event.target.value) || 1)"
-                                    />
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CELL MERGE SECTION -->
-            <div class="divider" />
-            <div class="field-label" style="margin-top: 8px">Cell Merge</div>
-            <div style="margin-bottom: 10px;">
-                <select
-                    class="inp"
-                    style="width: 100%; font-size: 11px; padding: 5px; height: 28px;"
-                    :disabled="selectedCellsCount < 2 && !hasSelectedMerge"
-                    @change="handleMergeSelect($event.target.value); $event.target.value = '';"
-                >
-                    <option value="">Merge Options...</option>
-                    <option value="merge_center" :disabled="selectedCellsCount < 2">
-                        ↔ Merge & Center
-                    </option>
-                    <option value="merge_across" :disabled="selectedCellsCount < 2">
-                        ➔ Merge Across
-                    </option>
-                    <option value="merge_cells" :disabled="selectedCellsCount < 2">
-                        田 Merge Cells
-                    </option>
-                    <option value="unmerge" :disabled="!hasSelectedMerge">
-                        ⚏ Unmerge Cells
-                    </option>
-                </select>
-            </div>
             
-            <!-- List of active merges -->
-            <div
-                v-if="(block.mergedCells || []).length > 0"
-                style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;"
-            >
-                <div style="font-size: 10px; color: var(--color-panel-muted); margin-bottom: 2px;">Merged Ranges:</div>
-                <div
-                    v-for="m in block.mergedCells"
-                    :key="m.id"
-                    style="background: rgba(255,255,255,0.03); border: 1px solid var(--color-panel-border); border-radius: 4px; padding: 4px 8px; display: flex; align-items: center; justify-content: space-between; font-size: 11px;"
-                >
-                    <span>
-                        Row {{ m.startRow + 1 }}{{ m.startRow !== m.endRow ? '-' + (m.endRow + 1) : '' }} ({{ m.startCol }} to {{ m.endCol }})
-                    </span>
-                    <button
-                        class="btn btn-ghost text-danger"
-                        style="font-size: 9px; padding: 1px 4px; height: auto;"
-                        @click="unmergeCell(m.id)"
-                    >
-                        Unmerge
-                    </button>
-                </div>
-            </div>
-
-            <!-- CELL BORDERS SECTION -->
-            <div class="divider" />
-            <div class="field-label" style="margin-top: 8px">Cell Borders</div>
-            <div style="margin-bottom: 10px;">
-                <select
-                    class="inp"
-                    style="width: 100%; font-size: 11px; padding: 5px; height: 28px;"
-                    :disabled="selectedCellsCount === 0"
-                    @change="applyCellBorder($event.target.value); $event.target.value = '';"
-                >
-                    <option value="">Borders Options...</option>
-                    <option value="bottom">➖ Bottom Border</option>
-                    <option value="top">▔ Top Border</option>
-                    <option value="left">▏ Left Border</option>
-                    <option value="right">▕ Right Border</option>
-                    <option value="no_border">❌ No Border (Borderless)</option>
-                    <option value="all_borders">田 All Borders</option>
-                    <option value="outside">⬜ Outside Borders</option>
-                    <option value="thick_outside">⬛ Thick Outside Borders</option>
-                    <option value="bottom_double">‗ Bottom Double Border</option>
-                    <option value="thick_bottom">▰ Thick Bottom Border</option>
-                    <option value="top_bottom">＝ Top and Bottom Border</option>
-                    <option value="top_thick_bottom">⎧ Top and Thick Bottom Border</option>
-                    <option value="top_double_bottom">⎨ Top and Double Bottom Border</option>
-                    <option value="clear_custom">🔄 Reset to Table Default</option>
-                </select>
-                <div v-if="selectedCellsCount === 0" style="font-size: 9px; color: var(--color-panel-muted); margin-top: 4px; font-style: italic;">
-                    Select table cells to enable custom borders.
-                </div>
-            </div>
-
-            <!-- ROW STYLING SECTION -->
-            <div class="divider" />
-            <div class="field-label" style="margin-top: 8px">Row Styling</div>
-
-            <!-- Alternating row colors -->
-            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <span>Alternating Colors</span>
-                    <label class="toggle">
-                        <input
-                            type="checkbox"
-                            :checked="block.alternatingRows"
-                            @change="handleCheckbox('alternatingRows', $event)"
-                        />
-                        <span class="toggle-track" />
-                    </label>
-                </div>
-                
-                <div v-if="block.alternatingRows" class="field-row">
-                    <div>
-                        <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Row 1 Color</label>
-                        <div style="display: flex; gap: 4px; align-items: center;">
-                            <input
-                                type="color"
-                                :value="block.row1Color || '#ffffff'"
-                                class="color-picker-input"
-                                @input="updateProp('row1Color', $event.target.value)"
-                                @change="commitHistory"
-                            />
-                            <input
-                                type="text"
-                                :value="block.row1Color ?? '#ffffff'"
-                                class="inp"
-                                @input="updateProp('row1Color', $event.target.value)"
-                                @blur="commitHistory"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Row 2 Color</label>
-                        <div style="display: flex; gap: 4px; align-items: center;">
-                            <input
-                                type="color"
-                                :value="block.row2Color || '#fafafa'"
-                                class="color-picker-input"
-                                @input="updateProp('row2Color', $event.target.value)"
-                                @change="commitHistory"
-                            />
-                            <input
-                                type="text"
-                                :value="block.row2Color ?? '#fafafa'"
-                                class="inp"
-                                @input="updateProp('row2Color', $event.target.value)"
-                                @blur="commitHistory"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Summary global overrides -->
-            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
-                <div style="font-size: 10px; font-weight: bold; color: var(--color-panel-primary); margin-top: 4px;">Summary/Total Rows Default</div>
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <span>Font Weight Bold</span>
-                    <label class="toggle">
-                        <input
-                            type="checkbox"
-                            :checked="block.summaryBold !== false"
-                            @change="handleCheckbox('summaryBold', $event)"
-                        />
-                        <span class="toggle-track" />
-                    </label>
-                </div>
-                <div class="field-row">
-                    <div>
-                        <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Bg Color</label>
-                        <div style="display: flex; gap: 4px; align-items: center;">
-                            <input
-                                type="color"
-                                :value="block.summaryBg || '#f5f5f5'"
-                                class="color-picker-input"
-                                @input="updateProp('summaryBg', $event.target.value)"
-                                @change="commitHistory"
-                            />
-                            <input
-                                type="text"
-                                :value="block.summaryBg ?? '#f5f5f5'"
-                                class="inp"
-                                @input="updateProp('summaryBg', $event.target.value)"
-                                @blur="commitHistory"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Text Color</label>
-                        <div style="display: flex; gap: 4px; align-items: center;">
-                            <input
-                                type="color"
-                                :value="block.summaryColor || '#333333'"
-                                class="color-picker-input"
-                                @input="updateProp('summaryColor', $event.target.value)"
-                                @change="commitHistory"
-                            />
-                            <input
-                                type="text"
-                                :value="block.summaryColor ?? '#333333'"
-                                class="inp"
-                                @input="updateProp('summaryColor', $event.target.value)"
-                                @blur="commitHistory"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Borders & Padding -->
-            <div class="field-row" style="margin-bottom: 10px;">
-                <div>
-                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Border Style</label>
-                    <select
-                        :value="block.borderStyle || 'solid'"
-                        class="inp"
-                        @change="updateProp('borderStyle', $event.target.value); commitHistory();"
-                    >
-                        <option value="solid">Solid</option>
-                        <option value="dashed">Dashed</option>
-                        <option value="dotted">Dotted</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 2px;">Cell Padding</label>
-                    <div class="field-unit">
-                        <input
-                            type="number"
-                            :value="block.cellPadding"
-                            class="inp"
-                            min="0"
-                            max="30"
-                            placeholder="Auto"
-                            @input="handleInput('cellPadding', $event)"
-                            @blur="commitHistory"
-                        />
-                        <span class="field-unit-label">px</span>
-                    </div>
-                </div>
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Border Color</label>
-                <div style="display: flex; gap: 6px; align-items: center;">
-                    <input
-                        type="color"
-                        :value="block.borderColor && block.borderColor.startsWith('#') ? block.borderColor : '#e0e0e0'"
-                        class="color-picker-input"
-                        @input="updateProp('borderColor', $event.target.value)"
-                        @change="commitHistory"
-                    />
-                    <input
-                        type="text"
-                        :value="block.borderColor ?? '#e0e0e0'"
-                        class="inp"
-                        @input="updateProp('borderColor', $event.target.value)"
-                        @blur="commitHistory"
-                    />
-                </div>
-            </div>
         </div>
 
         <!-- ─── CHECKBOXES ROW ─── -->
@@ -2472,12 +2169,6 @@ function moveField(fromIndex, toIndex) {
                 class="field-input"
                 @change="blockStore.updateBlock(block.id, { barcodeFontSize: parseFloat($event.target.value) || 12 }); commitHistory()"
             />
-        </div>
-
-        <!-- ─── STAMP BOX ─── -->
-        <div v-else-if="block.type === 'stamp_box'" class="field-group">
-            <div class="field-label">Stamp Box</div>
-            <p style="font-size:11px;color:var(--color-panel-muted);margin:0">Edit stamp box label directly on the canvas.</p>
         </div>
 
         <!-- ─── CARBON COPY LABEL ─── -->

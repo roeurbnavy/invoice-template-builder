@@ -70,7 +70,6 @@ export const BLOCK_TYPES = Object.freeze({
   // Simplified library additions
   CHECKBOXES_ROW: "checkboxes_row",
   TABLE: "table",
-  STAMP_BOX: "stamp_box",
   CUT_LINE: "cut_line",
   CARBON_COPY_LABEL: "carbon_copy_label",
 });
@@ -105,7 +104,7 @@ export const BLOCK_CATEGORIES = [
     id: "footer",
     label: "Footer",
     icon: "PenLine",
-    blocks: ["signature_line", "stamp_box", "watermark"],
+    blocks: ["signature_line", "watermark"],
   },
   {
     id: "print",

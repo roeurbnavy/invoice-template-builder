@@ -254,11 +254,6 @@ export const BLOCK_META = {
     name: "Table",
     description: "Rows + columns, fully configurable",
   },
-  stamp_box: {
-    icon: "Square",
-    name: "Stamp Box",
-    description: "Empty box for rubber stamp",
-  },
   cut_line: {
     icon: "Scissors",
     name: "Cut Line",

@@ -595,13 +595,6 @@ function onCellMouseDown(r, colId, event) {
         canvasStore.editingBlockId = props.block.id;
     }
     event.stopPropagation();
-    const cellId = `${r}:${colId}`;
-    if (event.shiftKey && lastSelectedCell.value) { selectionStart.value = lastSelectedCell.value; selectionEnd.value = { r, colId }; selectRange(selectionStart.value, selectionEnd.value); }
-    else {
-        isSelecting.value = true; selectionStart.value = { r, colId }; selectionEnd.value = { r, colId }; lastSelectedCell.value = { r, colId };
-        blockStore.updateBlock(props.block.id, { selectedCells: (event.ctrlKey || event.metaKey) ? [...(props.block.selectedCells ?? []), cellId] : [cellId] });
-        window.addEventListener('mouseup', onMouseUpGlobal);
-    }
     editingCell.value = { r, colId };
     nextTick(() => { const input = document.querySelector(`.cell-${r}-${colId} input`); if (input) { input.focus(); input.select(); } });
 }
@@ -612,7 +605,6 @@ function startEditingCellAction(r, colId) {
         canvasStore.editingBlockId = props.block.id;
     }
     editingCell.value = { r, colId };
-    blockStore.updateBlock(props.block.id, { selectedCells: [`${r}:${colId}`] });
     nextTick(() => {
         const input = document.querySelector(`.cell-${r}-${colId} input`);
         if (input) {
@@ -623,7 +615,7 @@ function startEditingCellAction(r, colId) {
     closeContextMenu();
 }
 
-function onCellMouseEnter(r, colId) { if (isSelecting.value && selectionStart.value) { selectionEnd.value = { r, colId }; selectRange(selectionStart.value, selectionEnd.value); } }
+function onCellMouseEnter(r, colId) {}
 
 function onMouseUpGlobal() { isSelecting.value = false; selectionStart.value = null; selectionEnd.value = null; window.removeEventListener('mouseup', onMouseUpGlobal); commitHistory(); }
 
@@ -640,15 +632,15 @@ function handleKeyDown(event) {
         event.preventDefault();
         if (event.shiftKey && r > 0) selectAndEditCell(r - 1, colId);
         else if (!event.shiftKey && r < allRows.value.length - 1) selectAndEditCell(r + 1, colId);
-    } else if (event.key === 'Escape') { editingCell.value = null; blockStore.updateBlock(props.block.id, { selectedCells: [] }); }
+    } else if (event.key === 'Escape') { editingCell.value = null; }
 }
 
 function selectAndEditCell(r, colId) {
-    blockStore.updateBlock(props.block.id, { selectedCells: [`${r}:${colId}`] }); editingCell.value = { r, colId };
+    editingCell.value = { r, colId };
     nextTick(() => { const input = document.querySelector(`.cell-${r}-${colId} input`); if (input) { input.focus(); input.select(); } });
 }
 
-function isCellSelected(r, colId) { return isBlockSelected.value && ((editingCell.value?.r === r && editingCell.value?.colId === colId) || (props.block.selectedCells ?? []).includes(`${r}:${colId}`)); }
+function isCellSelected(r, colId) { return false; }
 
 function getMergeForCell(r, colId) {
     if (!props.block.mergedCells) return null;

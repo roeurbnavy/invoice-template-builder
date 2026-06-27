@@ -109,12 +109,11 @@ const visibleTabs = computed(() => {
             ].includes(type);
         }
         if (tab.id === "data") {
-            return true;
+            return type !== "signature_line";
         }
         if (tab.id === "block") {
             return [
                 "item_table",
-                "image",
                 "shape",
                 "divider",
                 "spacer",
@@ -123,7 +122,6 @@ const visibleTabs = computed(() => {
                 "client_info",
                 "signature_line",
                 "watermark",
-                "stamp_box",
                 "checkboxes_row",
                 "barcode",
                 "carbon_copy_label",

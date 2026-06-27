@@ -24,7 +24,6 @@ import BankDetailsBlockRenderer from "../blocks/BankDetailsBlockRenderer.vue";
 import WatermarkBlockRenderer from "../blocks/WatermarkBlockRenderer.vue";
 import GenericBlockRenderer from "../blocks/GenericBlockRenderer.vue";
 import CheckboxesRowBlockRenderer from "../blocks/CheckboxesRowBlockRenderer.vue";
-import StampBoxBlockRenderer from "../blocks/StampBoxBlockRenderer.vue";
 import CutLineBlockRenderer from "../blocks/CutLineBlockRenderer.vue";
 import CarbonCopyLabelBlockRenderer from "../blocks/CarbonCopyLabelBlockRenderer.vue";
 import BarcodeBlockRenderer from "../blocks/BarcodeBlockRenderer.vue";
@@ -64,7 +63,6 @@ const RENDERERS = {
     watermark: WatermarkBlockRenderer,
     payment_qr: ImageBlockRenderer,
     checkboxes_row: CheckboxesRowBlockRenderer,
-    stamp_box: StampBoxBlockRenderer,
     cut_line: CutLineBlockRenderer,
     carbon_copy_label: CarbonCopyLabelBlockRenderer,
     page_number: TextBlockRenderer,
@@ -100,7 +98,11 @@ const paperStyle = computed(() => {
 });
 
 const previewBlocks = computed(() => {
-    return blockStore.orderedBlocks.filter(b => !b.hidden);
+    return blockStore.orderedBlocks.filter(b => {
+        if (b.hidden) return false;
+        if (b.visibleFormats && !b.visibleFormats.includes(canvasStore.formatId)) return false;
+        return true;
+    });
 });
 
 function getBlockStyle(block) {

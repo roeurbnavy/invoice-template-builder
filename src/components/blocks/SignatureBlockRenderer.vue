@@ -30,13 +30,82 @@ const style = computed(() => ({
 }))
 
 const label = computed(() => props.block.label ?? 'Authorized Signature')
+
+const sigContentJustify = computed(() => {
+  const align = props.block.textAlign || 'left';
+  return align === 'center' ? 'center' : (align === 'right' ? 'flex-end' : 'flex-start');
+})
 </script>
 
 <template>
   <div :style="style">
-    <!-- Signature Line -->
+    <!-- Signature Container -->
     <div class="sig-line-container w-full" style="display: flex; flex-direction: column; gap: 4px; width: 100%">
-      <div class="sig-line" :style="{ borderColor: block.color ?? '#555555' }" />
+      
+      <!-- Signature / Image above the line -->
+      <div 
+        class="sig-content-area" 
+        :style="{ 
+          height: '50px', 
+          display: 'flex', 
+          alignItems: 'flex-end', 
+          justifyContent: sigContentJustify, 
+          width: '100%', 
+          position: 'relative' 
+        }"
+      >
+        <!-- Uploaded Image Signature -->
+        <template v-if="block.signatureType === 'image' && block.signatureImage">
+          <img 
+            :src="block.signatureImage" 
+            alt="Signature" 
+            :style="{
+              maxHeight: '100%',
+              maxWidth: '100%',
+              objectFit: 'contain',
+              transform: `scale(${block.signatureScale ?? 1}) rotate(${block.signatureRotation ?? -2}deg)`,
+              transformOrigin: 'bottom center',
+              opacity: block.signatureOpacity ?? 1
+            }" 
+            draggable="false"
+          />
+        </template>
+        
+        <!-- Script font typed Signature -->
+        <template v-else-if="block.signatureType === 'text'">
+          <span 
+            :style="{
+              fontFamily: `${block.signatureFont ?? 'Dancing Script'}, cursive`,
+              fontSize: `${block.signatureFontSize ?? 24}px`,
+              color: block.signatureColor ?? '#0f2c59',
+              transform: `rotate(${block.signatureRotation ?? -3}deg)`,
+              transformOrigin: 'bottom center',
+              display: 'inline-block',
+              userSelect: 'none',
+              lineHeight: 1,
+              paddingBottom: '2px'
+            }"
+          >
+            {{ block.signatureText || block.signerName || 'Signature' }}
+          </span>
+        </template>
+        
+        <!-- Editable / Physical placeholder in fillMode -->
+        <template v-else-if="fillMode && (!block.signatureType || block.signatureType === 'none')">
+          <div style="font-size: 9px; opacity: 0.4; width: 100%; text-align: center; border: 1px dashed rgba(0,0,0,0.15); padding: 8px 0; border-radius: 4px;">
+            Physical Signature Line
+          </div>
+        </template>
+      </div>
+
+      <!-- Signature Line -->
+      <div 
+        class="sig-line" 
+        :style="{ 
+          borderColor: block.color ?? '#555555',
+          borderTopWidth: `${block.lineWidth ?? 1}px`
+        }" 
+      />
       
       <!-- Label / Signer Name -->
       <template v-if="fillMode">
@@ -77,6 +146,8 @@ const label = computed(() => props.block.label ?? 'Authorized Signature')
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Dancing+Script:wght@400;700&family=Pacifico&family=Yellowtail&family=Mrs+Saint+Delafield&family=Reenie+Beanie&display=swap');
+
 .sig-line {
   border-top: 1px solid;
   width: 100%;

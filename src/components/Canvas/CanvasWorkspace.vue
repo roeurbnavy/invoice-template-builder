@@ -58,6 +58,15 @@ const workspaceContentStyle = computed(() => {
   }
 })
 
+const visibleBlocks = computed(() => {
+  return blockStore.orderedBlocks.filter(b => {
+    if (b.visibleFormats && !b.visibleFormats.includes(canvasStore.formatId)) {
+      return false;
+    }
+    return true;
+  });
+})
+
 // ─── Drop handling ───────────────────────────────────────────
 function handleDrop(e) {
   isDraggingOver.value = false
@@ -158,6 +167,7 @@ function finalizeDragSelect() {
   if (selW < 4 || selH < 4) return
 
   const selected = blockStore.blocks.filter(b => {
+    if (b.visibleFormats && !b.visibleFormats.includes(canvasStore.formatId)) return false;
     return (
       b.x < selX + selW &&
       b.x + b.width > selX &&
@@ -299,7 +309,7 @@ onUnmounted(() => {
 
             <!-- Blocks -->
             <CanvasBlock
-              v-for="block in blockStore.orderedBlocks"
+              v-for="block in visibleBlocks"
               :key="block.id"
               :block="block"
               @contextmenu.stop="(e) => showContextMenu(e, block.id)"

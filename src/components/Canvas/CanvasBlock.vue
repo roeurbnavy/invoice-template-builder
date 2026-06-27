@@ -28,7 +28,6 @@ import BankDetailsBlockRenderer from "../blocks/BankDetailsBlockRenderer.vue";
 import WatermarkBlockRenderer from "../blocks/WatermarkBlockRenderer.vue";
 import GenericBlockRenderer from "../blocks/GenericBlockRenderer.vue";
 import CheckboxesRowBlockRenderer from "../blocks/CheckboxesRowBlockRenderer.vue";
-import StampBoxBlockRenderer from "../blocks/StampBoxBlockRenderer.vue";
 import CutLineBlockRenderer from "../blocks/CutLineBlockRenderer.vue";
 import CarbonCopyLabelBlockRenderer from "../blocks/CarbonCopyLabelBlockRenderer.vue";
 import BarcodeBlockRenderer from "../blocks/BarcodeBlockRenderer.vue";
@@ -69,7 +68,6 @@ const RENDERERS = {
     payment_qr: ImageBlockRenderer,
     // New renderers
     checkboxes_row: CheckboxesRowBlockRenderer,
-    stamp_box: StampBoxBlockRenderer,
     cut_line: CutLineBlockRenderer,
     carbon_copy_label: CarbonCopyLabelBlockRenderer,
     page_number: TextBlockRenderer,
