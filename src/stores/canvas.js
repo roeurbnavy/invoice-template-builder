@@ -20,6 +20,7 @@ export const useCanvasStore = defineStore("canvas", () => {
   // Paper format
   const formatId = ref(DEFAULT_FORMAT);
   const orientation = ref(DEFAULT_ORIENTATION);
+  const paperFormats = ref(PAPER_FORMATS);
 
   // UI toggles
   const showRulers = ref(false);
@@ -33,13 +34,25 @@ export const useCanvasStore = defineStore("canvas", () => {
   const editingBlockId = ref(null);
 
   // Computed
-  const paperDimensions = computed(() =>
-    getFormatDimensions(formatId.value, orientation.value),
-  );
+  const paperDimensions = computed(() => {
+    const fmt = paperFormats.value[formatId.value] ?? paperFormats.value.A4;
+    if (!fmt) return { width: 794, height: 1123 };
+    if (orientation.value === "landscape" && !fmt.isThermal) {
+      return { width: fmt.height, height: fmt.width };
+    }
+    return { width: fmt.width, height: fmt.height };
+  });
 
-  const currentFormat = computed(() => PAPER_FORMATS[formatId.value]);
+  const currentFormat = computed(() => paperFormats.value[formatId.value]);
 
   // Actions
+  function setPaperFormats(formats) {
+    paperFormats.value = formats;
+    if (formats && !Object.keys(formats).includes(formatId.value)) {
+      formatId.value = Object.keys(formats)[0] || "A4";
+    }
+  }
+
   function setFabricCanvas(canvas) {
     fabricCanvas.value = canvas;
   }
@@ -123,5 +136,7 @@ export const useCanvasStore = defineStore("canvas", () => {
     togglePreviewMode,
     toggleFillMode,
     setFillMode,
+    paperFormats,
+    setPaperFormats,
   };
 });

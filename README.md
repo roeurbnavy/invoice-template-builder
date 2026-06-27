@@ -55,62 +55,107 @@ src/
 You can use this builder inside other POS subsystems or applications as a dynamic template builder. The builder supports runtime configuration injects for schemas, presets, and sample data.
 
 ### 1. Build and Export the Package
+
 Build the package into the `dist/` bundle:
+
 ```bash
 npm run build
 ```
 
 ### 2. Integration inside your Parent POS
+
 Import the component and pass your custom schemas, sample data, presets, or saved templates:
 
 ```vue
 <script setup>
-import { ref } from 'vue'
-import InvoiceBuilder from '@my-pos/invoice-builder'
-import '@my-pos/invoice-builder/dist/assets/index.css'
+import { ref } from "vue";
+import InvoiceBuilder from "@my-pos/invoice-builder";
+import "@my-pos/invoice-builder/dist/assets/index.css";
 
 // 1. Define custom document schemas for this client/company
 const clientSchemas = ref({
-  'borrowing': {
-    label: 'Borrowing Note',
-    description: 'Borrowing item transaction tracking',
+  borrowing: {
+    label: "Borrowing Note",
+    description: "Borrowing item transaction tracking",
     fields: [
-      { key: 'doc.number', label: 'Note Number', group: 'Document', type: 'string' },
-      { key: 'borrower.name', label: 'Borrower Name', group: 'Borrower', type: 'string' },
-      { key: 'items', label: 'Borrow Items', group: 'Items', type: 'table' }
-    ]
+      {
+        key: "doc.number",
+        label: "Note Number",
+        group: "Document",
+        type: "string",
+      },
+      {
+        key: "borrower.name",
+        label: "Borrower Name",
+        group: "Borrower",
+        type: "string",
+      },
+      { key: "items", label: "Borrow Items", group: "Items", type: "table" },
+    ],
   },
-  'Payback': {
-    label: 'Payback Note',
-    description: 'Item return tracking',
+  Payback: {
+    label: "Payback Note",
+    description: "Item return tracking",
     fields: [
-      { key: 'doc.number', label: 'Note Number', group: 'Document', type: 'string' },
-      { key: 'items', label: 'Returned Items', group: 'Items', type: 'table' }
-    ]
-  }
-})
+      {
+        key: "doc.number",
+        label: "Note Number",
+        group: "Document",
+        type: "string",
+      },
+      { key: "items", label: "Returned Items", group: "Items", type: "table" },
+    ],
+  },
+});
 
 // 2. Define corresponding sample data for real-time design preview
 const clientSampleData = ref({
-  doc: { number: 'BOR-2026-0099' },
-  borrower: { name: 'John Doe' },
-  items: [
-    { no: 1, description: 'Power Drill X1', qty: 1 }
-  ]
-})
+  doc: { number: "BOR-2026-0099" },
+  borrower: { name: "John Doe" },
+  items: [{ no: 1, description: "Power Drill X1", qty: 1 }],
+});
 
 // 3. (Optional) Custom layout coordinates percentage-based presets
 const clientPresets = ref({
-  'borrowing': [
-    { type: 'text', xPercent: 0.1, yPercent: 0.1, widthPercent: 0.8, heightPercent: 0.1, defaultProps: { content: 'BORROWING TEMPLATE' } }
-  ]
-})
+  borrowing: [
+    {
+      type: "text",
+      xPercent: 0.1,
+      yPercent: 0.1,
+      widthPercent: 0.8,
+      heightPercent: 0.1,
+      defaultProps: { content: "BORROWING TEMPLATE" },
+    },
+  ],
+});
 
 // 4. Initial blocks if loading a previously saved template
-const savedBlocks = ref([])
+const savedBlocks = ref([]);
+
+// 5. (Optional) Custom selectable fonts & paper formats
+const customFonts = ref([
+  { name: "Roboto", value: '"Roboto", sans-serif' },
+  { name: "Lora", value: '"Lora", serif' },
+]);
+const customFormats = ref({
+  A4: {
+    id: "A4",
+    label: "A4 Standard",
+    width: 794,
+    height: 1123,
+    isThermal: false,
+  },
+  RECEIPT_80: {
+    id: "RECEIPT_80",
+    label: "80mm Thermal",
+    width: 302,
+    height: 1512,
+    isThermal: true,
+  },
+});
 
 function handleSave(event) {
-  console.log('Saved Template Blocks JSON Configuration:', event)
+  console.log("Saved Template Blocks JSON Configuration:", event);
 }
 </script>
 
@@ -120,6 +165,8 @@ function handleSave(event) {
     :sampleData="clientSampleData"
     :presets="clientPresets"
     :initialBlocks="savedBlocks"
+    :fonts="customFonts"
+    :paperFormats="customFormats"
     @save="handleSave"
   />
 </template>
@@ -130,6 +177,7 @@ function handleSave(event) {
 Once you design a template and save its JSON blocks configuration, you have two primary methods to render the final document with real live POS transaction data:
 
 ### Method 1: Browser-Based Live Rendering (Vue + Pinia)
+
 If you want to render the template inside a Vue preview window or show a print modal populated with a real transaction:
 
 1. Import the Pinia `useSettingsStore`.
@@ -137,65 +185,80 @@ If you want to render the template inside a Vue preview window or show a print m
 3. The block components will automatically listen reactively, resolve the paths, and display the final values.
 
 ```javascript
-import { useSettingsStore } from './stores/settings.js'
-import { useCanvasStore } from './stores/canvas.js'
+import { useSettingsStore } from "./stores/settings.js";
+import { useCanvasStore } from "./stores/canvas.js";
 
-const settingsStore = useSettingsStore()
-const canvasStore = useCanvasStore()
+const settingsStore = useSettingsStore();
+const canvasStore = useCanvasStore();
 
 // 1. Inject the live POS data into the Pinia state
 settingsStore.setSampleData({
   doc: {
     number: "INV-2026-9876",
     date: "2026-06-27",
-    notes: "Thank you for shopping with us!"
+    notes: "Thank you for shopping with us!",
   },
   company: {
     name: "Acme Distribution Center",
-    phone: "+1 (555) 987-6543"
+    phone: "+1 (555) 987-6543",
   },
   customer: {
-    name: "John Doe"
+    name: "John Doe",
   },
   totals: {
-    subtotal: 1045.00,
-    discount: 45.00,
-    total: 1000.00
+    subtotal: 1045.0,
+    discount: 45.0,
+    total: 1000.0,
   },
   items: [
-    { no: 1, description: "Wireless Keyboard", qty: 2, unit_price: 25.00, total: 50.00 },
-    { no: 2, description: "Ergonomic Monitor Mount", qty: 1, unit_price: 950.00, total: 950.00 }
-  ]
-})
+    {
+      no: 1,
+      description: "Wireless Keyboard",
+      qty: 2,
+      unit_price: 25.0,
+      total: 50.0,
+    },
+    {
+      no: 2,
+      description: "Ergonomic Monitor Mount",
+      qty: 1,
+      unit_price: 950.0,
+      total: 950.0,
+    },
+  ],
+});
 
 // 2. Open the Preview / Print modal
-canvasStore.previewMode = true
-canvasStore.showPreview = true
+canvasStore.previewMode = true;
+canvasStore.showPreview = true;
 ```
 
 ---
 
 ### Method 2: Programmatic Headless Rendering (Node.js / Backend)
+
 If you need to generate PDFs, emails, or thermal receipt printer print commands (ESC/POS) on your server without mounting a visual canvas:
 
 Use the lightweight, framework-agnostic helper functions inside `src/utils/variableResolver.js` to map your JSON blocks:
 
 ```javascript
-import { resolveBlockBinding } from './utils/variableResolver.js'
+import { resolveBlockBinding } from "./utils/variableResolver.js";
 
 // Load your template blocks configuration
-const templateBlocks = savedTemplate.blocks // JSON Array
+const templateBlocks = savedTemplate.blocks; // JSON Array
 
 // Loop and resolve variables
-templateBlocks.forEach(block => {
+templateBlocks.forEach((block) => {
   // Resolve binding against real posData
-  const resolved = resolveBlockBinding(block, realLivePosData, false)
-  
+  const resolved = resolveBlockBinding(block, realLivePosData, false);
+
   if (resolved !== null) {
     // If the block is a text/label block
-    block.resolvedContent = Array.isArray(resolved) ? resolved : String(resolved)
+    block.resolvedContent = Array.isArray(resolved)
+      ? resolved
+      : String(resolved);
   }
-})
+});
 
 // Now you can render 'templateBlocks' to HTML/Canvas/PDF using coordinates (block.x, block.y)
 ```
@@ -203,6 +266,7 @@ templateBlocks.forEach(block => {
 ---
 
 ### Method 3: Direct Printing from POS Screens (e.g., Customer/Vendor Center)
+
 When a user clicks **"Print"** or **"Print A5"** next to a transaction row in your Customer or Vendor Center, you can render the template off-screen and trigger the print dialog instantly:
 
 1. **Create a temporary hidden container** (or iframe) in your DOM.
@@ -212,39 +276,39 @@ When a user clicks **"Print"** or **"Print A5"** next to a transaction row in yo
 ```vue
 <!-- PrintWrapper.vue (Inside your POS system) -->
 <script setup>
-import { ref } from 'vue'
-import { useSettingsStore } from '@my-pos/invoice-builder'
-import InvoiceRenderer from '@my-pos/invoice-builder/renderer'
+import { ref } from "vue";
+import { useSettingsStore } from "@my-pos/invoice-builder";
+import InvoiceRenderer from "@my-pos/invoice-builder/renderer";
 
 const props = defineProps({
   templateBlocks: Array,
   transactionData: Object,
-  paperFormat: String // e.g., 'A5'
-})
+  paperFormat: String, // e.g., 'A5'
+});
 
-const isPrinting = ref(false)
+const isPrinting = ref(false);
 
 function printDocument() {
-  isPrinting.value = true
-  
+  isPrinting.value = true;
+
   // Set store data
-  const settingsStore = useSettingsStore()
-  settingsStore.setSampleData(props.transactionData)
-  
+  const settingsStore = useSettingsStore();
+  settingsStore.setSampleData(props.transactionData);
+
   // Wait for DOM update, then print
   setTimeout(() => {
-    window.print()
-    isPrinting.value = false
-  }, 100)
+    window.print();
+    isPrinting.value = false;
+  }, 100);
 }
 </script>
 
 <template>
   <!-- Hidden on screen, visible only during print media query -->
   <div class="print-only-container">
-    <InvoiceRenderer 
-      :blocks="templateBlocks" 
-      :data="transactionData" 
+    <InvoiceRenderer
+      :blocks="templateBlocks"
+      :data="transactionData"
       :formatId="paperFormat"
     />
   </div>
@@ -271,10 +335,11 @@ function printDocument() {
 ---
 
 ### Method 4: Integrating with POS Custom / Native Print Functions
+
 If your POS system uses a **custom hardware printing utility**, a **native thermal printer library (ESC/POS)**, or a **backend PDF engine**, you can extract the raw, fully resolved coordinates and formatted text values directly to feed into your printer function:
 
 ```javascript
-import { resolveBlockBinding } from '@my-pos/invoice-builder/resolver'
+import { resolveBlockBinding } from "@my-pos/invoice-builder/resolver";
 
 /**
  * Prepares template blocks for custom printers by resolving data keys and formats
@@ -284,11 +349,11 @@ import { resolveBlockBinding } from '@my-pos/invoice-builder/resolver'
  */
 function getPrintableBlocks(blocks, posData) {
   return blocks
-    .filter(block => !block.hidden)
-    .map(block => {
+    .filter((block) => !block.hidden)
+    .map((block) => {
       // 1. Resolve variables/bindings against real live POS transaction data
-      const resolved = resolveBlockBinding(block, posData, false)
-      
+      const resolved = resolveBlockBinding(block, posData, false);
+
       return {
         id: block.id,
         type: block.type,
@@ -304,44 +369,47 @@ function getPrintableBlocks(blocks, posData) {
         fontWeight: block.fontWeight,
         color: block.color,
         // Fully resolved content (formatted dates, currencies, decimals, etc.)
-        content: resolved !== null ? String(resolved) : (block.content ?? '')
-      }
-    })
+        content: resolved !== null ? String(resolved) : (block.content ?? ""),
+      };
+    });
 }
 
 // Example usage:
-const printableItems = getPrintableBlocks(savedTemplate.blocks, currentTransaction)
+const printableItems = getPrintableBlocks(
+  savedTemplate.blocks,
+  currentTransaction,
+);
 
 // Feed this array directly to your POS custom thermal/laser printer driver:
-myPosHardwarePrinter.printCustomLayout(printableItems)
+myPosHardwarePrinter.printCustomLayout(printableItems);
 ```
 
 ## Document Types
 
-| Type | Schema Fields |
-|---|---|
-| Sale | doc, customer, company, totals, items |
-| Sale Order | doc, customer, company, totals, items, shipping |
-| Deposit | doc, deposit, customer, payment, company, totals |
-| Receipt | doc, receipt, customer, payment, company, totals, items |
-| Quote | doc, customer, company, totals, items |
-| Purchase Order | doc, vendor, company, totals, items, shipping |
-| Delivery Note | doc, customer, company, totals, items, shipping |
-| Credit Note | doc, customer, company, totals, items |
-| Custom | (none — user-defined fields only) |
+| Type           | Schema Fields                                           |
+| -------------- | ------------------------------------------------------- |
+| Sale           | doc, customer, company, totals, items                   |
+| Sale Order     | doc, customer, company, totals, items, shipping         |
+| Deposit        | doc, deposit, customer, payment, company, totals        |
+| Receipt        | doc, receipt, customer, payment, company, totals, items |
+| Quote          | doc, customer, company, totals, items                   |
+| Purchase Order | doc, vendor, company, totals, items, shipping           |
+| Delivery Note  | doc, customer, company, totals, items, shipping         |
+| Credit Note    | doc, customer, company, totals, items                   |
+| Custom         | (none — user-defined fields only)                       |
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|---|---|
-| `Ctrl+Z` | Undo |
-| `Ctrl+Shift+Z` | Redo |
-| `Delete` / `Backspace` | Delete selected block |
-| `Ctrl+C` / `Ctrl+V` | Copy / Paste block |
-| `Ctrl+D` | Duplicate block |
-| Arrow keys | Nudge 1px (Shift: 10px) |
-| `Escape` | Deselect |
-| `Ctrl+B/I/U` | Bold / Italic / Underline (in text edit mode) |
+| Shortcut               | Action                                        |
+| ---------------------- | --------------------------------------------- |
+| `Ctrl+Z`               | Undo                                          |
+| `Ctrl+Shift+Z`         | Redo                                          |
+| `Delete` / `Backspace` | Delete selected block                         |
+| `Ctrl+C` / `Ctrl+V`    | Copy / Paste block                            |
+| `Ctrl+D`               | Duplicate block                               |
+| Arrow keys             | Nudge 1px (Shift: 10px)                       |
+| `Escape`               | Deselect                                      |
+| `Ctrl+B/I/U`           | Bold / Italic / Underline (in text edit mode) |
 
 ## Tech Stack
 

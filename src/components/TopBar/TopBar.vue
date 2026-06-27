@@ -87,6 +87,24 @@ const formatLabels = {
     RECEIPT_80: "80mm",
 };
 
+// ─── Template Name Input Handlers ─────────────────────────────
+function handleNameInput(val) {
+    if (val.trim()) {
+        templateStore.currentTemplateName = val;
+    }
+}
+
+function handleNameBlur(e) {
+    const val = e.target.value.trim();
+    if (!val) {
+        e.target.value = templateStore.currentTemplateName || "Untitled Template";
+    } else {
+        templateStore.currentTemplateName = val;
+    }
+    e.target.style.border = '1px dashed transparent';
+    e.target.style.background = 'transparent';
+}
+
 // ─── Undo / Redo ─────────────────────────────────────────────
 function handleUndo() {
     const snapshot = historyStore.undo();
@@ -231,6 +249,36 @@ function toggleTheme() {
             <span>Invoice Builder</span>
         </div>
 
+        <div class="topbar-sep" />
+
+        <!-- Template Name Editor -->
+        <div style="display: flex; align-items: center; gap: 4px;">
+            <input
+                type="text"
+                :value="templateStore.currentTemplateName"
+                class="inp"
+                style="
+                    background: transparent;
+                    border: 1px dashed transparent;
+                    font-size: 12px;
+                    font-weight: 500;
+                    color: var(--color-panel-text);
+                    width: 140px;
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                    transition: all 0.15s ease;
+                "
+                placeholder="Template Name"
+                title="Click to rename template"
+                @input="handleNameInput($event.target.value)"
+                @blur="handleNameBlur"
+                @keydown.enter="$event.target.blur()"
+                onfocus="this.style.border = '1px solid var(--color-panel-border)'; this.style.background = 'var(--color-input-bg)';"
+            />
+        </div>
+
+        <div class="topbar-sep" />
+
         <!-- Document Type -->
         <select
             :value="settingsStore.documentType"
@@ -264,15 +312,15 @@ function toggleTheme() {
         <div class="topbar-sep" />
 
         <!-- Paper Formats -->
-        <div class="flex gap-1">
+        <div class="format-toggle" style="display: flex; gap: 2px;">
             <button
-                v-for="fmt in formats"
-                :key="fmt"
+                v-for="(val, key) in canvasStore.paperFormats"
+                :key="key"
                 class="format-btn"
-                :class="{ active: canvasStore.formatId === fmt }"
-                @click="switchFormat(fmt)"
+                :class="{ active: canvasStore.formatId === key }"
+                @click="switchFormat(key)"
             >
-                {{ formatLabels[fmt] }}
+                {{ val.label || key }}
             </button>
         </div>
 
