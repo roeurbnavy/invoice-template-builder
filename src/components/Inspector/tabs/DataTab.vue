@@ -177,6 +177,15 @@ const sampleDataGroups = computed(() => {
     }
     return groups;
 });
+
+const itemProperties = computed(() => {
+    const firstItem = SAMPLE_DATA.items?.[0] || {};
+    const props = {};
+    for (const [key, val] of Object.entries(firstItem)) {
+        props[key] = typeof val;
+    }
+    return props;
+});
 </script>
 
 <template>
@@ -346,9 +355,18 @@ const sampleDataGroups = computed(() => {
                     </p>
                     <p class="hint-text" style="margin-top: 8px;">
                         Each column ID should match a property key from the data
-                        source (e.g., <code>description</code>, <code>qty</code>,
-                        <code>unit_price</code>).
+                        source.
                     </p>
+
+                    <div style="margin-top: 10px; padding: 10px; background: var(--color-card-bg); border: 1px solid var(--color-panel-border); border-radius: 6px;">
+                        <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--color-accent); margin-bottom: 6px; letter-spacing: 0.03em;">Available Data Keys:</div>
+                        <div style="display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto;">
+                            <div v-for="(type, key) in itemProperties" :key="key" style="display: flex; justify-content: space-between; font-family: monospace; font-size: 10px; padding: 3px 6px; background: var(--color-workspace); border-radius: 3px;">
+                                <span style="color: var(--color-panel-text); font-weight: bold;">{{ key }}</span>
+                                <span style="color: var(--color-panel-muted); font-size: 9px; text-transform: uppercase;">{{ type }}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </template>
 

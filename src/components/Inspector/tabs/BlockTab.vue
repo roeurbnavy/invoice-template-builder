@@ -4,6 +4,7 @@ import { useBlockStore } from "../../../stores/blocks.js";
 import { useHistoryStore } from "../../../stores/history.js";
 import { useSettingsStore } from "../../../stores/settings.js";
 import { Trash2 } from "@lucide/vue";
+import { SAMPLE_DATA } from "../../../constants/variableFields.js";
 
 const props = defineProps({
     block: { type: Object, required: true },
@@ -771,6 +772,55 @@ function addTableRow() {
     items.push({ no: items.length + 1, description: '', qty: '', unit_price: '', discount: '', tax: '', total: '' });
     updateProp('items', items);
     commitHistory();
+}
+
+const availableDataKeys = computed(() => {
+    const firstItem = SAMPLE_DATA.items?.[0] || {};
+    return Object.keys(firstItem);
+});
+
+const showCustomKeyMap = ref({});
+
+function isCustomKey(key) {
+    if (!key) return false;
+    return !availableDataKeys.value.includes(key);
+}
+
+function handleDataKeyChange(colId, val) {
+    const columns = getStoredColumns();
+    const col = columns.find(c => c.id === colId);
+    if (!col) return;
+    if (val === '__custom__') {
+        showCustomKeyMap.value[colId] = true;
+    } else {
+        showCustomKeyMap.value[colId] = false;
+        col.dataKey = val;
+        updateProp('columns', columns);
+        commitHistory();
+    }
+}
+
+const showCustomSubKeyMap = ref({});
+
+function isCustomSubKey(key) {
+    if (!key) return false;
+    return !availableDataKeys.value.includes(key);
+}
+
+function handleSubDataKeyChange(colId, subIdx, val) {
+    const columns = getStoredColumns();
+    const col = columns.find(c => c.id === colId);
+    if (!col || !col.subFields?.[subIdx]) return;
+    
+    const key = `${colId}_${subIdx}`;
+    if (val === '__custom__') {
+        showCustomSubKeyMap.value[key] = true;
+    } else {
+        showCustomSubKeyMap.value[key] = false;
+        col.subFields[subIdx].dataKey = val;
+        updateProp('columns', columns);
+        commitHistory();
+    }
 }
 </script>
 
@@ -1934,9 +1984,19 @@ function addTableRow() {
 
                     <!-- Data key & format -->
                     <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px; row-gap: 4px; padding-left: 2px;">
+                        <select
+                            :value="isCustomKey(col.dataKey) ? '__custom__' : (col.dataKey ?? col.id)"
+                            class="inp"
+                            style="padding: 2px 4px; font-size: 11px; width: 70px; min-width: 50px; flex: 1 1 auto;"
+                            @change="handleDataKeyChange(col.id, $event.target.value)"
+                        >
+                            <option v-for="key in availableDataKeys" :key="key" :value="key">{{ key }}</option>
+                            <option value="__custom__">Manual...</option>
+                        </select>
                         <input
+                            v-if="isCustomKey(col.dataKey) || showCustomKeyMap[col.id]"
                             type="text"
-                            :value="col.dataKey ?? col.id"
+                            :value="col.dataKey ?? ''"
                             class="inp"
                             style="padding: 2px 4px; font-size: 11px; width: 70px; min-width: 50px; flex: 1 1 auto;"
                             placeholder="Data key"
@@ -2000,9 +2060,19 @@ function addTableRow() {
                                             :title="(sub.display ?? 'block') === 'block' ? 'New line' : 'Inline'"
                                             @click="updateSubField(col.id, si, 'display', (sub.display ?? 'block') === 'block' ? 'inline' : 'block')"
                                         >{{ (sub.display ?? 'block') === 'block' ? '↵' : '→' }}</button>
+                                        <select
+                                            :value="isCustomSubKey(sub.dataKey) ? '__custom__' : (sub.dataKey ?? sub.id ?? '')"
+                                            class="inp"
+                                            style="padding:2px 4px;font-size:10px;width:50px;flex:1"
+                                            @change="handleSubDataKeyChange(col.id, si, $event.target.value)"
+                                        >
+                                            <option v-for="key in availableDataKeys" :key="key" :value="key">{{ key }}</option>
+                                            <option value="__custom__">Manual...</option>
+                                        </select>
                                         <input
+                                            v-if="isCustomSubKey(sub.dataKey) || showCustomSubKeyMap[`${col.id}_${si}`]"
                                             type="text"
-                                            :value="sub.dataKey ?? sub.id ?? ''"
+                                            :value="sub.dataKey ?? ''"
                                             class="inp"
                                             style="padding:2px 4px;font-size:10px;width:50px;flex:1"
                                             placeholder="Data key"
