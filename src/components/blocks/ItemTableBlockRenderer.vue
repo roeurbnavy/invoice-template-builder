@@ -145,6 +145,31 @@ function formatVal(col, item) {
     return String(val);
 }
 
+function formatSubFieldVal(sub, item) {
+    const key = sub.dataKey ?? sub.id ?? '';
+    if (!key) return '';
+    const val = item[key];
+    if (val === undefined || val === null) return '';
+    const fmt = sub.format;
+    if (fmt?.type && fmt.type !== 'text') {
+        return formatValue(val, fmt.type, fmt);
+    }
+    return String(val);
+}
+
+function subFieldStyle(sub, col) {
+    return {
+        fontSize: sub.fontSize ? `${sub.fontSize}px` : undefined,
+        fontWeight: sub.bold ? 'bold' : (col.bold ? 'bold' : 'normal'),
+        color: sub.color ?? undefined,
+        fontStyle: sub.fontStyle ?? 'normal',
+        textDecoration: sub.textDecoration ?? undefined,
+        lineHeight: sub.lineHeight ?? 1.4,
+        marginRight: sub.display === 'inline' ? '4px' : undefined,
+        marginBottom: sub.display !== 'inline' ? '1px' : undefined,
+    };
+}
+
 function getCellBorderStyles(r, colId, isDataRow) {
     const defaultBorder = isDataRow ? cellBorder() : emptyCellBorder();
     const cellBorders = props.block.cellBorders ?? {};
@@ -619,7 +644,15 @@ watch(editingSpecialRowId, (newId) => { if (newId) nextTick(() => document.query
                                 </template>
                                 <template v-else>
                                     <input v-if="fillMode && editingCell?.r === row.index && editingCell?.colId === col.id" :value="row.item[col.id]" class="inline-cell-input" @input="updateItemValue(row.localIndex, col.id, $event.target.value)" @blur="editingCell = null; commitHistory()" @keydown="handleKeyDown" />
-                                    <span v-else>{{ formatVal(col, row.item) }}</span>
+                                    <span v-else-if="!col.subFields?.length">{{ formatVal(col, row.item) }}</span>
+                                    <div v-else class="multi-value-cell">
+                                        <span v-if="col.subFields?.[0]?.display === 'inline'" :style="{ fontWeight: col.bold ? 'bold' : undefined, marginRight: '4px' }">{{ formatVal(col, row.item) }}</span>
+                                        <div v-else :style="{ fontWeight: col.bold ? 'bold' : undefined, marginBottom: '1px' }">{{ formatVal(col, row.item) }}</div>
+                                        <template v-for="(sub, si) in col.subFields" :key="si">
+                                            <span v-if="sub.display === 'inline'" :style="subFieldStyle(sub, col)">{{ formatSubFieldVal(sub, row.item) }}</span>
+                                            <div v-else :style="subFieldStyle(sub, col)">{{ formatSubFieldVal(sub, row.item) }}</div>
+                                        </template>
+                                    </div>
                                 </template>
                             </template>
                             <template v-else>
@@ -800,6 +833,9 @@ th, td {
   position: relative; /* Add this to your existing th/td styles */
 }
 .inline-cell-input { width: 100%; border: 1px solid transparent; background: transparent; padding: 2px 4px; font-size: inherit; font-family: inherit; color: inherit; text-align: inherit; border-radius: 3px; box-sizing: border-box; }
+.multi-value-cell { display: block; }
+.multi-value-cell > div { line-height: 1.4; }
+.multi-value-cell > span { line-height: 1.4; }
 .inline-cell-input:hover { border-color: rgba(0, 180, 216, 0.3); background: rgba(0, 180, 216, 0.05); }
 .inline-cell-input:focus { outline: none; border-color: #00b4d8; background: white; box-shadow: 0 0 3px rgba(0, 180, 216, 0.2); }
 .serial-cell { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
