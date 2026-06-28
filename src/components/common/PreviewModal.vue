@@ -150,6 +150,12 @@ const tableShiftOffset = computed(() => {
 
   const contentDelta = actualHeight - designHeight;
 
+  // Compute the repeated header height (thead repeats on every new page)
+  const headerFontSize = itemTable.headerFontSize ?? itemTable.bodyFontSize ?? 12;
+  const hTop    = itemTable.headerPaddingTop ?? (itemTable.cellPaddingTop ?? (itemTable.cellPadding ?? 6));
+  const hBottom = itemTable.headerPaddingBottom ?? (itemTable.cellPaddingBottom ?? (itemTable.cellPadding ?? 6));
+  const headerH = itemTable.showHeader !== false ? (headerFontSize + hTop + hBottom + 10) : 0;
+
   const MM_TO_PX = 3.7795;
   const fmt = canvasStore.currentFormat;
   const pageH = fmt?.height ?? 1123;
@@ -158,25 +164,30 @@ const tableShiftOffset = computed(() => {
   const marginBottomPx = (settingsStore.printMarginBottom ?? 0) * MM_TO_PX;
   const marginTop1Px   = (settingsStore.printMarginTopFirst ?? 0) * MM_TO_PX;
 
-  const page1End   = pageH - marginBottomPx;
-  const page1Space = page1End - designY;
+  const page1Space = (pageH - marginBottomPx) - designY;
+
+  // Each subsequent page: full page minus margins AND minus repeated header
+  const subPageRowSpace = pageH - marginTopPx - marginBottomPx - headerH;
 
   let pageBreaks = 0;
   if (actualHeight > page1Space) {
     let remaining = actualHeight - page1Space;
-    const subsequentPageH = pageH - marginTopPx - marginBottomPx;
     pageBreaks = 1;
-    while (remaining > subsequentPageH) {
-      remaining -= subsequentPageH;
+    while (remaining > subPageRowSpace) {
+      remaining -= subPageRowSpace;
       pageBreaks++;
     }
   }
 
+  // Gap added by @page margins at each page break
   const gapFromBreaks = pageBreaks > 0
     ? marginTop1Px + (pageBreaks - 1) * marginTopPx + pageBreaks * marginBottomPx
     : 0;
 
-  return contentDelta + gapFromBreaks;
+  // Repeated <thead> adds headerH pixels for each page break
+  const repeatedHeaderGap = pageBreaks * headerH;
+
+  return contentDelta + repeatedHeaderGap + gapFromBreaks;
 });
 
 const computedDocumentHeight = computed(() => {

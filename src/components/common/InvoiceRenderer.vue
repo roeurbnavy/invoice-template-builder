@@ -164,41 +164,49 @@ const tableShiftOffset = computed(() => {
   // Raw content delta (table grew beyond its design slot)
   const contentDelta = actualHeight - designHeight;
 
+  // Compute the repeated header height (thead repeats on every new page)
+  const headerFontSize = itemTable.headerFontSize ?? itemTable.bodyFontSize ?? 12;
+  const hTop    = itemTable.headerPaddingTop ?? (itemTable.cellPaddingTop ?? (itemTable.cellPadding ?? 6));
+  const hBottom = itemTable.headerPaddingBottom ?? (itemTable.cellPaddingBottom ?? (itemTable.cellPadding ?? 6));
+  const headerH = itemTable.showHeader !== false ? (headerFontSize + hTop + hBottom + 10) : 0;
+
   // How many page breaks does the table cross?
-  // 1 mm = 3.7795 px  (CSS reference pixel)
   const MM_TO_PX = 3.7795;
   const dim = paperDimensions.value;
-  const pageH = dim.height; // total page height in px (e.g. 1123 for A4)
+  const pageH = dim.height;
 
   const marginTopPx    = (props.printMarginTop    ?? 0) * MM_TO_PX;
   const marginBottomPx = (props.printMarginBottom ?? 0) * MM_TO_PX;
   const marginTop1Px   = (props.printMarginTopFirst ?? 0) * MM_TO_PX;
 
-  // Usable content height on page 1 (from table start to page edge)
-  const page1End   = pageH - marginBottomPx;   // bottom edge of page 1 content
-  const page1Space = page1End - designY;        // px available on page 1 for the table
+  // Usable content height on page 1 from table top
+  const page1Space = (pageH - marginBottomPx) - designY;
 
-  // Count breaks
+  // Each subsequent page: full page minus margins AND minus repeated header
+  // (because thead re-renders, consuming space for content rows)
+  const subPageRowSpace = pageH - marginTopPx - marginBottomPx - headerH;
+
   let pageBreaks = 0;
   if (actualHeight > page1Space) {
+    // remaining = content that still needs to fit on page 2+
+    // actualHeight already includes headerH once (for page 1)
     let remaining = actualHeight - page1Space;
-    const subsequentPageH = pageH - marginTopPx - marginBottomPx;
     pageBreaks = 1;
-    while (remaining > subsequentPageH) {
-      remaining -= subsequentPageH;
+    while (remaining > subPageRowSpace) {
+      remaining -= subPageRowSpace;
       pageBreaks++;
     }
   }
 
-  // Each break adds marginTop (page 2+) worth of gap.
-  // Page 1 → 2 adds marginTop1Px for the first subsequent page top.
-  // But we already applied marginTop1Px on the @page :first override
-  // so subsequent pages use printMarginTop.
+  // Gap added by @page margins at each page break
   const gapFromBreaks = pageBreaks > 0
     ? marginTop1Px + (pageBreaks - 1) * marginTopPx + pageBreaks * marginBottomPx
     : 0;
 
-  return contentDelta + gapFromBreaks;
+  // Repeated <thead> adds headerH pixels for each page break
+  const repeatedHeaderGap = pageBreaks * headerH;
+
+  return contentDelta + repeatedHeaderGap + gapFromBreaks;
 });
 
 const computedDocumentHeight = computed(() => {

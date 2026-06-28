@@ -833,7 +833,7 @@ select.inp option {
    Print Stylesheet — hides all UI, shows only the paper
    ============================================================ */
 @media print {
-    @page {
+    /* @page {
         margin: var(--print-page-margin, 0mm) !important;
         margin-top: var(--print-margin-top, var(--print-page-margin, 0mm)) !important;
         margin-bottom: var(--print-margin-bottom, var(--print-page-margin, 0mm)) !important;
@@ -843,7 +843,7 @@ select.inp option {
 
     @page :first {
         margin-top: var(--print-margin-top-first, var(--print-page-margin, 0mm)) !important;
-    }
+    } */
 
     /* Hide all UI chrome, guide lines, selection highlights, etc. */
     .topbar,
