@@ -81,127 +81,51 @@ const settingsStore = useSettingsStore();
 const visible = ref(false);
 let previewModeBackup = false;
 
-const computedTableHeight = computed(() => {
-  const itemTable = blockStore.orderedBlocks.find(
-    (b) => b.type === "item_table",
-  );
-  if (!itemTable) return 0;
+import { paginateTemplate } from "../../utils/pagination.js";
 
-  const bindingField = itemTable.dataBinding?.field || "items";
+const pages = computed(() => {
+  const format = canvasStore.currentFormat || { id: "A4", label: "A4", width: 794, height: 1123, isThermal: false };
+  return paginateTemplate(blockStore.orderedBlocks, null, format, settingsStore);
+});
 
-  let sourceData = settingsStore.sampleData;
-  if (!sourceData || Object.keys(sourceData).length === 0) {
-    sourceData = SAMPLE_DATA;
-  }
-  if (!sourceData) sourceData = {};
+const allPreviewPages = computed(() => {
+  const templatePages = pages.value;
+  const list = [];
 
-  const allItems =
-    getNestedValue(sourceData, bindingField) || itemTable.items || [];
-  const itemsCount = Array.isArray(allItems) ? allItems.length : 0;
-
-  const headerFontSize =
-    itemTable.headerFontSize ?? itemTable.bodyFontSize ?? 12;
-  const bodyFontSize = itemTable.bodyFontSize ?? 12;
-
-  // Extract padding sizes
-  const hTop =
-    itemTable.headerPaddingTop ??
-    itemTable.cellPaddingTop ??
-    itemTable.cellPadding ??
-    6;
-  const hBottom =
-    itemTable.headerPaddingBottom ??
-    itemTable.cellPaddingBottom ??
-    itemTable.cellPadding ??
-    6;
-  const headerMinHeight = headerFontSize + hTop + hBottom + 10;
-  const headerHeight = itemTable.showHeader !== false ? headerMinHeight : 0;
-
-  const pTop = itemTable.cellPaddingTop ?? itemTable.cellPadding ?? 5;
-  const pBottom = itemTable.cellPaddingBottom ?? itemTable.cellPadding ?? 5;
-  const rowMinHeight = bodyFontSize + pTop + pBottom + 8;
-
-  const defaultRowHeight = itemTable.defaultRowHeight ?? 30;
-  let rowsHeight = 0;
-  for (let i = 0; i < itemsCount; i++) {
-    const customHeight = itemTable.rowStyles?.[i]?.height;
-    rowsHeight += Math.max(customHeight ?? defaultRowHeight, rowMinHeight);
-  }
-
-  const emptyRowsCount = Math.max(0, (itemTable.emptyRows ?? 0) - itemsCount);
-  const emptyRowsHeight =
-    emptyRowsCount * Math.max(defaultRowHeight, rowMinHeight);
-
-  let specialRowsHeight = 0;
-  if (Array.isArray(itemTable.specialRows)) {
-    itemTable.specialRows.forEach((sr) => {
-      if (sr.type === "divider") {
-        specialRowsHeight += (sr.thickness ?? 1) + 8;
-      } else {
-        specialRowsHeight += Math.max(defaultRowHeight, rowMinHeight);
-      }
+  for (let copyIdx = 1; copyIdx <= printCopies.value; copyIdx++) {
+    templatePages.forEach((page) => {
+      const pageCopy = {
+        height: page.height,
+        blocks: page.blocks.map(block => {
+          if (block.type === "carbon_copy_label") {
+            const modified = { ...block };
+            if (copyIdx === 1) {
+              modified.content = block.content || "ORIGINAL";
+            } else if (copyIdx === 2) {
+              modified.content = "DUPLICATE";
+            } else if (copyIdx === 3) {
+              modified.content = "TRIPLICATE";
+            }
+            return modified;
+          }
+          return block;
+        })
+      };
+      list.push(pageCopy);
     });
   }
-
-  return headerHeight + rowsHeight + emptyRowsHeight + specialRowsHeight + 10;
+  return list;
 });
 
-const tableShiftOffset = computed(() => {
-  const itemTable = blockStore.orderedBlocks.find(
-    (b) => b.type === "item_table",
-  );
-  if (!itemTable) return 0;
-
-  const bindingField = itemTable.dataBinding?.field || "items";
-  let sourceData = settingsStore.sampleData;
-  if (!sourceData || Object.keys(sourceData).length === 0) sourceData = SAMPLE_DATA;
-  if (!sourceData) sourceData = {};
-
-  const allItems = getNestedValue(sourceData, bindingField) || itemTable.items || [];
-  const items = Array.isArray(allItems) ? allItems : [];
-
-  const fmt = canvasStore.currentFormat;
-  const pageH = fmt?.height ?? 1123;
-
-  return computeTableShiftOffset(itemTable, items, pageH, 0, 0);
-});
-
-const computedDocumentHeight = computed(() => {
-  const fmt = canvasStore.currentFormat;
-  const pageH = fmt?.height ?? 1123;
-
-  // If the table doesn't overflow, content is designed for exactly one page
-  if (tableShiftOffset.value === 0) return pageH;
-
-  // Table overflows — find the true bottom of all shifted blocks
-  let maxHeight = pageH;
-  blockStore.orderedBlocks.forEach((block) => {
-    const blockHeight = parseFloat(block.height) || 0;
-    const blockY = parseFloat(block.y) || 0;
-
-    const itemTable = blockStore.orderedBlocks.find(
-      (b) => b.type === "item_table",
-    );
-    const itemTableY = itemTable ? parseFloat(itemTable.y) || 0 : 0;
-    const yOffset =
-      itemTable && blockY > itemTableY ? tableShiftOffset.value : 0;
-
-    const bottom = blockY + yOffset + blockHeight;
-    if (bottom > maxHeight) maxHeight = bottom;
-  });
-
-  return maxHeight + 20;
-});
-
-const paperStyle = computed(() => {
+function getPageStyle(page) {
   const fmt = canvasStore.currentFormat;
   return {
     width: `${fmt?.width ?? 794}px`,
-    height: `${computedDocumentHeight.value}px`,
+    height: `${page.height}px`,
     minHeight: `${fmt?.height ?? 1123}px`,
     background: "#ffffff",
     position: "relative",
-    overflow: "visible",
+    overflow: "hidden",
     boxShadow: "0 4px 30px rgba(0,0,0,0.3)",
     borderRadius: "2px",
     flexShrink: 0,
@@ -209,35 +133,16 @@ const paperStyle = computed(() => {
     fontSize: `${settingsStore.globalFontSize || 13}px`,
     color: "#000000",
   };
-});
-
-const previewBlocks = computed(() => {
-  return blockStore.orderedBlocks.filter((b) => {
-    if (b.hidden) return false;
-    if (b.visibleFormats && !b.visibleFormats.includes(canvasStore.formatId))
-      return false;
-    return true;
-  });
-});
+}
 
 function getBlockStyle(block) {
-  const itemTable = blockStore.orderedBlocks.find(
-    (b) => b.type === "item_table",
-  );
-  let yOffset = 0;
-  const blockY = parseFloat(block.y) || 0;
-  const itemTableY = itemTable ? parseFloat(itemTable.y) || 0 : 0;
-
-  if (itemTable && blockY > itemTableY) {
-    yOffset = tableShiftOffset.value;
-  }
   return {
     position: "absolute",
     left: `${parseFloat(block.x) || 0}px`,
-    top: `${blockY + yOffset}px`,
+    top: `${parseFloat(block.y) || 0}px`,
     width: `${parseFloat(block.width) || 0}px`,
     height:
-      block.type === "item_table"
+      block.type === "item_table" || block.type === "table"
         ? "auto"
         : `${parseFloat(block.height) || 0}px`,
     transform: block.rotation ? `rotate(${block.rotation}deg)` : "none",
@@ -252,23 +157,6 @@ function getRenderer(type) {
 }
 
 const printCopies = ref(1);
-
-function getPageBlocks(pageIdx) {
-  return previewBlocks.value.map((block) => {
-    if (block.type === "carbon_copy_label") {
-      const modified = { ...block };
-      if (pageIdx === 1) {
-        modified.content = block.content || "ORIGINAL";
-      } else if (pageIdx === 2) {
-        modified.content = "DUPLICATE";
-      } else if (pageIdx === 3) {
-        modified.content = "TRIPLICATE";
-      }
-      return modified;
-    }
-    return block;
-  });
-}
 
 watch(
   () => canvasStore.showPreview,
@@ -361,13 +249,13 @@ onUnmounted(() => {
           style="display: flex; flex-direction: column; gap: 30px"
         >
           <div
-            v-for="pageIdx in printCopies"
+            v-for="(page, pageIdx) in allPreviewPages"
             :key="pageIdx"
-            :style="paperStyle"
+            :style="getPageStyle(page)"
             class="preview-paper"
           >
             <div
-              v-for="block in getPageBlocks(pageIdx)"
+              v-for="block in page.blocks"
               :key="block.id"
               :style="getBlockStyle(block)"
             >
@@ -375,11 +263,14 @@ onUnmounted(() => {
                 :is="getRenderer(block.type)"
                 :block="block"
                 :fill-mode="false"
-                style="width: 100%; height: 100%"
+                :style="{
+                  width: '100%',
+                  height: block.type === 'item_table' || block.type === 'table' ? 'auto' : '100%'
+                }"
               />
             </div>
 
-            <div v-if="previewBlocks.length === 0" class="preview-empty">
+            <div v-if="page.blocks.length === 0" class="preview-empty">
               No blocks on canvas. Add blocks to see a preview.
             </div>
           </div>

@@ -85,159 +85,42 @@ const RENDERERS = {
   page_break: PageBreakBlockRenderer,
 };
 
-const paperDimensions = computed(() =>
-  getFormatDimensions(props.formatId, props.orientation),
-);
+import { paginateTemplate } from "../../utils/pagination.js";
 
-const computedTableHeight = computed(() => {
-  const itemTable = props.blocks.find((b) => b.type === "item_table");
-  if (!itemTable) return 0;
+const pages = computed(() => {
+  let settingsStore = null;
+  try {
+    settingsStore = useSettingsStore();
+  } catch (e) {}
 
-  const bindingField = itemTable.dataBinding?.field || "items";
-
-  let sourceData = props.data;
-  if (!sourceData || Object.keys(sourceData).length === 0) {
-    try {
-      const settingsStore = useSettingsStore();
-      sourceData = settingsStore.sampleData;
-    } catch (e) {}
-  }
-  if (!sourceData || Object.keys(sourceData).length === 0) {
-    sourceData = SAMPLE_DATA;
-  }
-  if (!sourceData) sourceData = {};
-
-  const allItems =
-    getNestedValue(sourceData, bindingField) || itemTable.items || [];
-  const itemsCount = Array.isArray(allItems) ? allItems.length : 0;
-
-  const headerFontSize =
-    itemTable.headerFontSize ?? itemTable.bodyFontSize ?? 12;
-  const bodyFontSize = itemTable.bodyFontSize ?? 12;
-
-  // Extract padding sizes
-  const hTop =
-    itemTable.headerPaddingTop ??
-    itemTable.cellPaddingTop ??
-    itemTable.cellPadding ??
-    6;
-  const hBottom =
-    itemTable.headerPaddingBottom ??
-    itemTable.cellPaddingBottom ??
-    itemTable.cellPadding ??
-    6;
-  const headerMinHeight = headerFontSize + hTop + hBottom + 10;
-  const headerHeight = itemTable.showHeader !== false ? headerMinHeight : 0;
-
-  const pTop = itemTable.cellPaddingTop ?? itemTable.cellPadding ?? 5;
-  const pBottom = itemTable.cellPaddingBottom ?? itemTable.cellPadding ?? 5;
-  const rowMinHeight = bodyFontSize + pTop + pBottom + 8;
-
-  const defaultRowHeight = itemTable.defaultRowHeight ?? 30;
-  let rowsHeight = 0;
-  for (let i = 0; i < itemsCount; i++) {
-    const customHeight = itemTable.rowStyles?.[i]?.height;
-    rowsHeight += Math.max(customHeight ?? defaultRowHeight, rowMinHeight);
-  }
-
-  const emptyRowsCount = Math.max(0, (itemTable.emptyRows ?? 0) - itemsCount);
-  const emptyRowsHeight =
-    emptyRowsCount * Math.max(defaultRowHeight, rowMinHeight);
-
-  let specialRowsHeight = 0;
-  if (Array.isArray(itemTable.specialRows)) {
-    itemTable.specialRows.forEach((sr) => {
-      if (sr.type === "divider") {
-        specialRowsHeight += (sr.thickness ?? 1) + 8;
-      } else {
-        specialRowsHeight += Math.max(defaultRowHeight, rowMinHeight);
-      }
-    });
-  }
-
-  return headerHeight + rowsHeight + emptyRowsHeight + specialRowsHeight + 10;
+  const format = PAPER_FORMATS[props.formatId] || PAPER_FORMATS.A4;
+  return paginateTemplate(props.blocks, props.data, format, settingsStore);
 });
 
-const tableShiftOffset = computed(() => {
-  const itemTable = props.blocks.find((b) => b.type === "item_table");
-  if (!itemTable) return 0;
-
-  // Resolve items the same way computedTableHeight does
-  const bindingField = itemTable.dataBinding?.field || "items";
-  let sourceData = props.data;
-  if (!sourceData || Object.keys(sourceData).length === 0) {
-    try {
-      const settingsStore = useSettingsStore();
-      sourceData = settingsStore.sampleData;
-    } catch (e) {}
-  }
-  if (!sourceData || Object.keys(sourceData).length === 0) sourceData = SAMPLE_DATA;
-  if (!sourceData) sourceData = {};
-
-  const allItems = getNestedValue(sourceData, bindingField) || itemTable.items || [];
-  const items = Array.isArray(allItems) ? allItems : [];
-
-  const dim = paperDimensions.value;
-
-  return computeTableShiftOffset(itemTable, items, dim.height, 0, 0);
-});
-
-
-const computedDocumentHeight = computed(() => {
-  const dim = paperDimensions.value;
-
-  // If the table doesn't overflow, content is designed for exactly one page
-  if (tableShiftOffset.value === 0) return dim.height;
-
-  // Table overflows — find the true bottom of all shifted blocks
-  let maxHeight = dim.height;
-  props.blocks.forEach((block) => {
-    const blockHeight = parseFloat(block.height) || 0;
-    const blockY = parseFloat(block.y) || 0;
-
-    const itemTable = props.blocks.find((b) => b.type === "item_table");
-    const itemTableY = itemTable ? parseFloat(itemTable.y) || 0 : 0;
-    const yOffset =
-      itemTable && blockY > itemTableY ? tableShiftOffset.value : 0;
-
-    const bottom = blockY + yOffset + blockHeight;
-    if (bottom > maxHeight) maxHeight = bottom;
-  });
-
-  return maxHeight + 20;
-});
-
-const paperStyle = computed(() => {
-  const dim = paperDimensions.value;
+function getPageStyle(page) {
+  const dim = getFormatDimensions(props.formatId, props.orientation);
   return {
     width: `${dim.width}px`,
-    height: `${computedDocumentHeight.value}px`,
-    minHeight: `${dim.height}px`,
+    height: `${page.height}px`,
     background: "#ffffff",
     position: "relative",
-    overflow: "visible",
+    overflow: "hidden",
     fontFamily: props.globalFont,
     fontSize: `${props.globalFontSize}px`,
     color: "#000000",
+    pageBreakAfter: "always",
+    boxSizing: "border-box",
   };
-});
+}
 
 function getBlockStyle(block) {
-  const itemTable = props.blocks.find((b) => b.type === "item_table");
-  let yOffset = 0;
-  const blockY = parseFloat(block.y) || 0;
-  const itemTableY = itemTable ? parseFloat(itemTable.y) || 0 : 0;
-
-  if (itemTable && blockY > itemTableY) {
-    yOffset = tableShiftOffset.value;
-  }
   return {
     position: "absolute",
     left: `${parseFloat(block.x) || 0}px`,
-    top: `${blockY + yOffset}px`,
+    top: `${parseFloat(block.y) || 0}px`,
     width: `${parseFloat(block.width) || 0}px`,
     height:
-      block.type === "item_table"
+      block.type === "item_table" || block.type === "table"
         ? "auto"
         : `${parseFloat(block.height) || 0}px`,
     transform: block.rotation ? `rotate(${block.rotation}deg)` : "none",
@@ -250,29 +133,27 @@ function getBlockStyle(block) {
 function getRenderer(type) {
   return RENDERERS[type] ?? GenericBlockRenderer;
 }
-
-const filteredBlocks = computed(() => {
-  return props.blocks.filter((b) => {
-    if (b.hidden) return false;
-    if (b.visibleFormats && !b.visibleFormats.includes(props.formatId))
-      return false;
-    return true;
-  });
-});
 </script>
 
 <template>
-  <div class="invoice-renderer-sheet" :style="paperStyle">
+  <div class="invoice-renderer-pages">
     <div
-      v-for="block in filteredBlocks"
-      :key="block.id"
-      :style="getBlockStyle(block)"
+      v-for="(page, pageIdx) in pages"
+      :key="pageIdx"
+      class="invoice-renderer-sheet"
+      :style="getPageStyle(page)"
     >
-      <component
-        :is="getRenderer(block.type)"
-        :block="block"
-        :preview-data="data"
-      />
+      <div
+        v-for="block in page.blocks"
+        :key="block.id"
+        :style="getBlockStyle(block)"
+      >
+        <component
+          :is="getRenderer(block.type)"
+          :block="block"
+          :preview-data="data"
+        />
+      </div>
     </div>
   </div>
 </template>
