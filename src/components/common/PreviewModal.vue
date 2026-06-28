@@ -100,17 +100,27 @@ const computedTableHeight = computed(() => {
 
   const headerFontSize =
     itemTable.headerFontSize ?? itemTable.bodyFontSize ?? 12;
-  const headerHeight = itemTable.showHeader !== false ? headerFontSize + 24 : 0;
+  const bodyFontSize = itemTable.bodyFontSize ?? 12;
+
+  // Extract padding sizes
+  const hTop = itemTable.headerPaddingTop ?? (itemTable.cellPaddingTop ?? (itemTable.cellPadding ?? 6));
+  const hBottom = itemTable.headerPaddingBottom ?? (itemTable.cellPaddingBottom ?? (itemTable.cellPadding ?? 6));
+  const headerMinHeight = headerFontSize + hTop + hBottom + 10;
+  const headerHeight = itemTable.showHeader !== false ? headerMinHeight : 0;
+
+  const pTop = itemTable.cellPaddingTop ?? (itemTable.cellPadding ?? 5);
+  const pBottom = itemTable.cellPaddingBottom ?? (itemTable.cellPadding ?? 5);
+  const rowMinHeight = bodyFontSize + pTop + pBottom + 8;
 
   const defaultRowHeight = itemTable.defaultRowHeight ?? 30;
   let rowsHeight = 0;
   for (let i = 0; i < itemsCount; i++) {
     const customHeight = itemTable.rowStyles?.[i]?.height;
-    rowsHeight += customHeight ?? defaultRowHeight;
+    rowsHeight += Math.max(customHeight ?? defaultRowHeight, rowMinHeight);
   }
 
   const emptyRowsCount = Math.max(0, (itemTable.emptyRows ?? 0) - itemsCount);
-  const emptyRowsHeight = emptyRowsCount * defaultRowHeight;
+  const emptyRowsHeight = emptyRowsCount * Math.max(defaultRowHeight, rowMinHeight);
 
   let specialRowsHeight = 0;
   if (Array.isArray(itemTable.specialRows)) {
@@ -118,7 +128,7 @@ const computedTableHeight = computed(() => {
       if (sr.type === "divider") {
         specialRowsHeight += (sr.thickness ?? 1) + 8;
       } else {
-        specialRowsHeight += defaultRowHeight;
+        specialRowsHeight += Math.max(defaultRowHeight, rowMinHeight);
       }
     });
   }
