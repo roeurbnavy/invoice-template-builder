@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { useCanvasStore } from "../../stores/canvas.js";
 import { useBlockStore } from "../../stores/blocks.js";
 import { useSettingsStore } from "../../stores/settings.js";
+import { getNestedValue, SAMPLE_DATA } from "../../utils/variableResolver.js";
 
 // Block renderers — same as CanvasBlock.vue
 import TextBlockRenderer from "../blocks/TextBlockRenderer.vue";
@@ -79,14 +80,90 @@ const settingsStore = useSettingsStore();
 const visible = ref(false);
 let previewModeBackup = false;
 
+const computedTableHeight = computed(() => {
+  const itemTable = blockStore.orderedBlocks.find(b => b.type === 'item_table');
+  if (!itemTable) return 0;
+  
+  const bindingField = itemTable.dataBinding?.field || 'items';
+  
+  let sourceData = settingsStore.sampleData;
+  if (!sourceData || Object.keys(sourceData).length === 0) {
+    sourceData = SAMPLE_DATA;
+  }
+  if (!sourceData) sourceData = {};
+  
+  const allItems = getNestedValue(sourceData, bindingField) || itemTable.items || [];
+  const itemsCount = Array.isArray(allItems) ? allItems.length : 0;
+  
+  const headerFontSize = itemTable.headerFontSize ?? itemTable.bodyFontSize ?? 12;
+  const headerHeight = itemTable.showHeader !== false ? (headerFontSize + 24) : 0;
+  
+  const defaultRowHeight = itemTable.defaultRowHeight ?? 30;
+  let rowsHeight = 0;
+  for (let i = 0; i < itemsCount; i++) {
+    const customHeight = itemTable.rowStyles?.[i]?.height;
+    rowsHeight += customHeight ?? defaultRowHeight;
+  }
+  
+  const emptyRowsCount = Math.max(0, (itemTable.emptyRows ?? 0) - itemsCount);
+  const emptyRowsHeight = emptyRowsCount * defaultRowHeight;
+  
+  let specialRowsHeight = 0;
+  if (Array.isArray(itemTable.specialRows)) {
+    itemTable.specialRows.forEach(sr => {
+      if (sr.type === 'divider') {
+        specialRowsHeight += (sr.thickness ?? 1) + 8;
+      } else {
+        specialRowsHeight += defaultRowHeight;
+      }
+    });
+  }
+  
+  return headerHeight + rowsHeight + emptyRowsHeight + specialRowsHeight + 10;
+});
+
+const tableHeightDelta = computed(() => {
+  const itemTable = blockStore.orderedBlocks.find(b => b.type === 'item_table');
+  if (!itemTable) return 0;
+  const designHeight = parseFloat(itemTable.height) || 200;
+  const actualHeight = computedTableHeight.value;
+  return actualHeight > designHeight ? (actualHeight - designHeight) : 0;
+});
+
+const computedDocumentHeight = computed(() => {
+  const fmt = canvasStore.currentFormat;
+  let maxHeight = fmt?.height ?? 1123;
+  
+  blockStore.orderedBlocks.forEach(block => {
+    const blockHeight = parseFloat(block.height) || 0;
+    const blockY = parseFloat(block.y) || 0;
+    
+    let yOffset = 0;
+    const itemTable = blockStore.orderedBlocks.find(b => b.type === 'item_table');
+    const itemTableY = itemTable ? (parseFloat(itemTable.y) || 0) : 0;
+    
+    if (itemTable && blockY > itemTableY) {
+      yOffset = tableHeightDelta.value;
+    }
+    
+    const bottom = blockY + yOffset + blockHeight;
+    if (bottom > maxHeight) {
+      maxHeight = bottom;
+    }
+  });
+  
+  return maxHeight + 40;
+});
+
 const paperStyle = computed(() => {
   const fmt = canvasStore.currentFormat;
   return {
     width: `${fmt?.width ?? 794}px`,
-    height: `${fmt?.height ?? 1123}px`,
+    height: `${computedDocumentHeight.value}px`,
+    minHeight: `${fmt?.height ?? 1123}px`,
     background: "#ffffff",
     position: "relative",
-    overflow: "hidden",
+    overflow: "visible",
     boxShadow: "0 4px 30px rgba(0,0,0,0.3)",
     borderRadius: "2px",
     flexShrink: 0,
@@ -106,12 +183,20 @@ const previewBlocks = computed(() => {
 });
 
 function getBlockStyle(block) {
+  const itemTable = blockStore.orderedBlocks.find(b => b.type === 'item_table');
+  let yOffset = 0;
+  const blockY = parseFloat(block.y) || 0;
+  const itemTableY = itemTable ? (parseFloat(itemTable.y) || 0) : 0;
+  
+  if (itemTable && blockY > itemTableY) {
+    yOffset = tableHeightDelta.value;
+  }
   return {
     position: "absolute",
-    left: `${block.x}px`,
-    top: `${block.y}px`,
-    width: `${block.width}px`,
-    height: `${block.height}px`,
+    left: `${parseFloat(block.x) || 0}px`,
+    top: `${blockY + yOffset}px`,
+    width: `${parseFloat(block.width) || 0}px`,
+    height: block.type === 'item_table' ? 'auto' : `${parseFloat(block.height) || 0}px`,
     transform: block.rotation ? `rotate(${block.rotation}deg)` : "none",
     opacity: block.opacity ?? 1,
     zIndex: block.zIndex ?? 0,

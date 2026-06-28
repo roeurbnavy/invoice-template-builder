@@ -1744,6 +1744,7 @@ function handleSubDataKeyChange(colId, subIdx, val) {
         </div>
       </div>
 
+
       <!-- Body font -->
       <div class="field-row" style="margin-top: 8px">
         <div>
@@ -1865,7 +1866,7 @@ function handleSubDataKeyChange(colId, subIdx, val) {
             :value="
               block.borderColor && block.borderColor.startsWith('#')
                 ? block.borderColor
-                : '#e0e0e0'
+                : '#000000'
             "
             class="color-picker-input"
             @input="updateProp('borderColor', $event.target.value)"
@@ -1873,7 +1874,7 @@ function handleSubDataKeyChange(colId, subIdx, val) {
           />
           <input
             type="text"
-            :value="block.borderColor ?? '#e0e0e0'"
+            :value="block.borderColor ?? '#000000'"
             class="inp"
             @input="updateProp('borderColor', $event.target.value)"
             @blur="commitHistory"

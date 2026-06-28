@@ -196,7 +196,7 @@ const tableStyle = computed(() => ({
     tableLayout: "fixed",
 }));
 
-const borderColor = computed(() => props.block.borderColor ?? "#e0e0e0");
+const borderColor = computed(() => props.block.borderColor ?? "#000000");
 const showBorders = computed(() => props.block.showBorders !== false);
 const borderStyle = computed(() => props.block.borderStyle ?? "solid");
 

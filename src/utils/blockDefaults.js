@@ -165,7 +165,7 @@ export const BLOCK_DEFAULTS = {
     showHeader: true,
     showRowNumbers: false,
     showBorders: true,
-    borderColor: "#e0e0e0",
+    borderColor: "#000000",
     headerBg: "#f5f5f5",
     headerColor: "#333333",
     headerFontWeight: "bold",
