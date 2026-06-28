@@ -23,7 +23,7 @@ const props = defineProps({
   initialName: { type: String, default: null }
 })
 
-const emit = defineEmits(['save', 'change'])
+const emit = defineEmits(['save', 'change', 'close', 'closed'])
 
 useKeyboardShortcuts()
 useExport()
@@ -61,12 +61,8 @@ onMounted(() => {
           if (draft.orientation) canvasStore.setOrientation(draft.orientation);
           if (draft.name) templateStore.currentTemplateName = draft.name;
           if (draft.settings) {
-            if (draft.settings.company)
-              settingsStore.setCompany(draft.settings.company);
             if (draft.settings.documentType)
               settingsStore.setDocumentType(draft.settings.documentType);
-            if (draft.settings.currency)
-              settingsStore.setCurrency(draft.settings.currency);
             if (draft.settings.globalFont)
               settingsStore.setGlobalFont(draft.settings.globalFont);
             if (draft.settings.globalFontSize)
@@ -104,9 +100,7 @@ onMounted(() => {
       orientation: canvasStore.orientation,
       blocks: JSON.parse(JSON.stringify(blockStore.blocks)),
       settings: {
-        company: settingsStore.company,
         documentType: settingsStore.documentType,
-        currency: settingsStore.currency,
         globalFont: settingsStore.globalFont,
         globalFontSize: settingsStore.globalFontSize,
       },
@@ -135,9 +129,7 @@ watch(
     () => blockStore.blocks,
     () => canvasStore.formatId,
     () => canvasStore.orientation,
-    () => settingsStore.company,
     () => settingsStore.documentType,
-    () => settingsStore.currency,
     () => settingsStore.globalFont,
     () => settingsStore.globalFontSize,
     () => templateStore.currentTemplateName,
@@ -149,9 +141,7 @@ watch(
       orientation: canvasStore.orientation,
       blocks: JSON.parse(JSON.stringify(blockStore.blocks)),
       settings: {
-        company: settingsStore.company,
         documentType: settingsStore.documentType,
-        currency: settingsStore.currency,
         globalFont: settingsStore.globalFont,
         globalFontSize: settingsStore.globalFontSize,
       },
@@ -165,7 +155,7 @@ watch(
 
 <template>
   <div class="app-layout">
-    <TopBar />
+    <TopBar @close="emit('close'); emit('closed')" @save="(schema) => emit('save', schema)" />
     <div class="app-main">
       <LeftPanel />
       <CanvasWorkspace />

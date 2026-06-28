@@ -30,47 +30,46 @@ import BarcodeBlockRenderer from "../blocks/BarcodeBlockRenderer.vue";
 import TableBlockRenderer from "../blocks/TableBlockRenderer.vue";
 import PageBreakBlockRenderer from "../blocks/PageBreakBlockRenderer.vue";
 
-
 const RENDERERS = {
-    text: TextBlockRenderer,
-    dynamic_text: TextBlockRenderer,
-    image: ImageBlockRenderer,
-    divider: DividerBlockRenderer,
-    spacer: SpacerBlockRenderer,
-    shape: ShapeBlockRenderer,
-    container: ContainerBlockRenderer,
-    field_row: FieldRowBlockRenderer,
-    header_grid: HeaderGridBlockRenderer,
-    document_title: DocumentTitleBlockRenderer,
-    document_number: DocumentTitleBlockRenderer,
-    issue_date: FieldRowBlockRenderer,
-    due_date: FieldRowBlockRenderer,
-    reference_number: FieldRowBlockRenderer,
-    item_table: ItemTableBlockRenderer,
-    totals_block: TotalsBlockRenderer,
-    subtotal: TotalsBlockRenderer,
-    discount: TotalsBlockRenderer,
-    tax: TotalsBlockRenderer,
-    grand_total: TotalsBlockRenderer,
-    signature_line: SignatureBlockRenderer,
-    company_info: CompanyInfoBlockRenderer,
-    client_info: ClientInfoBlockRenderer,
-    notes: NotesBlockRenderer,
-    terms: NotesBlockRenderer,
-    footer_note: NotesBlockRenderer,
-    thank_you: NotesBlockRenderer,
-    bank_details: BankDetailsBlockRenderer,
-    watermark: WatermarkBlockRenderer,
-    payment_qr: ImageBlockRenderer,
-    checkboxes_row: CheckboxesRowBlockRenderer,
-    cut_line: CutLineBlockRenderer,
-    carbon_copy_label: CarbonCopyLabelBlockRenderer,
-    page_number: TextBlockRenderer,
-    balance_due: TotalsBlockRenderer,
-    deposit_paid: TotalsBlockRenderer,
-    barcode: BarcodeBlockRenderer,
-    table: TableBlockRenderer,
-    page_break: PageBreakBlockRenderer,
+  text: TextBlockRenderer,
+  dynamic_text: TextBlockRenderer,
+  image: ImageBlockRenderer,
+  divider: DividerBlockRenderer,
+  spacer: SpacerBlockRenderer,
+  shape: ShapeBlockRenderer,
+  container: ContainerBlockRenderer,
+  field_row: FieldRowBlockRenderer,
+  header_grid: HeaderGridBlockRenderer,
+  document_title: DocumentTitleBlockRenderer,
+  document_number: DocumentTitleBlockRenderer,
+  issue_date: FieldRowBlockRenderer,
+  due_date: FieldRowBlockRenderer,
+  reference_number: FieldRowBlockRenderer,
+  item_table: ItemTableBlockRenderer,
+  totals_block: TotalsBlockRenderer,
+  subtotal: TotalsBlockRenderer,
+  discount: TotalsBlockRenderer,
+  tax: TotalsBlockRenderer,
+  grand_total: TotalsBlockRenderer,
+  signature_line: SignatureBlockRenderer,
+  company_info: CompanyInfoBlockRenderer,
+  client_info: ClientInfoBlockRenderer,
+  notes: NotesBlockRenderer,
+  terms: NotesBlockRenderer,
+  footer_note: NotesBlockRenderer,
+  thank_you: NotesBlockRenderer,
+  bank_details: BankDetailsBlockRenderer,
+  watermark: WatermarkBlockRenderer,
+  payment_qr: ImageBlockRenderer,
+  checkboxes_row: CheckboxesRowBlockRenderer,
+  cut_line: CutLineBlockRenderer,
+  carbon_copy_label: CarbonCopyLabelBlockRenderer,
+  page_number: TextBlockRenderer,
+  balance_due: TotalsBlockRenderer,
+  deposit_paid: TotalsBlockRenderer,
+  barcode: BarcodeBlockRenderer,
+  table: TableBlockRenderer,
+  page_break: PageBreakBlockRenderer,
 };
 
 const canvasStore = useCanvasStore();
@@ -81,269 +80,299 @@ const visible = ref(false);
 let previewModeBackup = false;
 
 const paperStyle = computed(() => {
-    const fmt = canvasStore.currentFormat;
-    return {
-        width: `${fmt?.width ?? 794}px`,
-        height: `${fmt?.height ?? 1123}px`,
-        background: "#ffffff",
-        position: "relative",
-        overflow: "hidden",
-        boxShadow: "0 4px 30px rgba(0,0,0,0.3)",
-        borderRadius: "2px",
-        flexShrink: 0,
-        fontFamily: settingsStore.globalFont || "Noto Sans, sans-serif",
-        fontSize: `${settingsStore.globalFontSize || 13}px`,
-        color: "#000000",
-    };
+  const fmt = canvasStore.currentFormat;
+  return {
+    width: `${fmt?.width ?? 794}px`,
+    height: `${fmt?.height ?? 1123}px`,
+    background: "#ffffff",
+    position: "relative",
+    overflow: "hidden",
+    boxShadow: "0 4px 30px rgba(0,0,0,0.3)",
+    borderRadius: "2px",
+    flexShrink: 0,
+    fontFamily: settingsStore.globalFont || "Noto Sans, sans-serif",
+    fontSize: `${settingsStore.globalFontSize || 13}px`,
+    color: "#000000",
+  };
 });
 
 const previewBlocks = computed(() => {
-    return blockStore.orderedBlocks.filter(b => {
-        if (b.hidden) return false;
-        if (b.visibleFormats && !b.visibleFormats.includes(canvasStore.formatId)) return false;
-        return true;
-    });
+  return blockStore.orderedBlocks.filter((b) => {
+    if (b.hidden) return false;
+    if (b.visibleFormats && !b.visibleFormats.includes(canvasStore.formatId))
+      return false;
+    return true;
+  });
 });
 
 function getBlockStyle(block) {
-    return {
-        position: "absolute",
-        left: `${block.x}px`,
-        top: `${block.y}px`,
-        width: `${block.width}px`,
-        height: `${block.height}px`,
-        transform: block.rotation ? `rotate(${block.rotation}deg)` : "none",
-        opacity: block.opacity ?? 1,
-        zIndex: block.zIndex ?? 0,
-        pointerEvents: "none",
-    };
+  return {
+    position: "absolute",
+    left: `${block.x}px`,
+    top: `${block.y}px`,
+    width: `${block.width}px`,
+    height: `${block.height}px`,
+    transform: block.rotation ? `rotate(${block.rotation}deg)` : "none",
+    opacity: block.opacity ?? 1,
+    zIndex: block.zIndex ?? 0,
+    pointerEvents: "none",
+  };
 }
 
 function getRenderer(type) {
-    return RENDERERS[type] ?? GenericBlockRenderer;
+  return RENDERERS[type] ?? GenericBlockRenderer;
 }
 
 const printCopies = ref(1);
 
 function getPageBlocks(pageIdx) {
-    return previewBlocks.value.map(block => {
-        if (block.type === 'carbon_copy_label') {
-            const modified = { ...block };
-            if (pageIdx === 1) {
-                modified.content = block.content || 'ORIGINAL';
-            } else if (pageIdx === 2) {
-                modified.content = 'DUPLICATE';
-            } else if (pageIdx === 3) {
-                modified.content = 'TRIPLICATE';
-            }
-            return modified;
-        }
-        return block;
-    });
+  return previewBlocks.value.map((block) => {
+    if (block.type === "carbon_copy_label") {
+      const modified = { ...block };
+      if (pageIdx === 1) {
+        modified.content = block.content || "ORIGINAL";
+      } else if (pageIdx === 2) {
+        modified.content = "DUPLICATE";
+      } else if (pageIdx === 3) {
+        modified.content = "TRIPLICATE";
+      }
+      return modified;
+    }
+    return block;
+  });
 }
 
-watch(() => canvasStore.showPreview, async (val) => {
+watch(
+  () => canvasStore.showPreview,
+  async (val) => {
     if (val) {
-        previewModeBackup = canvasStore.previewMode;
-        canvasStore.previewMode = true;
-        document.body.classList.add("preview-open");
-        await nextTick();
-        visible.value = true;
+      previewModeBackup = canvasStore.previewMode;
+      canvasStore.previewMode = true;
+      document.body.classList.add("preview-open");
+      await nextTick();
+      visible.value = true;
     } else {
-        document.body.classList.remove("preview-open");
+      document.body.classList.remove("preview-open");
     }
-});
+  },
+);
 
 function close() {
-    canvasStore.previewMode = previewModeBackup;
-    canvasStore.showPreview = false;
-    visible.value = false;
-    document.body.classList.remove("preview-open");
+  canvasStore.previewMode = previewModeBackup;
+  canvasStore.showPreview = false;
+  visible.value = false;
+  document.body.classList.remove("preview-open");
 }
 
 function onKeydown(e) {
-    if (e.key === "Escape" && visible.value) {
-        close();
-    }
+  if (e.key === "Escape" && visible.value) {
+    close();
+  }
 }
 
 onMounted(() => {
-    window.addEventListener("keydown", onKeydown);
+  window.addEventListener("keydown", onKeydown);
 });
 
 onUnmounted(() => {
-    window.removeEventListener("keydown", onKeydown);
+  window.removeEventListener("keydown", onKeydown);
 });
 </script>
 
 <template>
-    <Teleport to="body">
-        <div v-if="visible" class="preview-overlay" @click.self="close">
-            <div class="preview-header">
-                <div class="preview-header-left">
-                    <span class="preview-title">Document Preview</span>
-                    <span class="preview-badge">{{ settingsStore.documentType }}</span>
-                    <span class="preview-info">
-                        {{ canvasStore.currentFormat?.label || 'A4' }} · {{ canvasStore.orientation }}
-                    </span>
-                </div>
-                <div class="preview-header-right">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-right: 12px;">
-                        <span style="font-size: 11px; color: rgba(255, 255, 255, 0.6);">Print Copies:</span>
-                        <select v-model="printCopies" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 4px 8px; font-size: 11px; color: white; outline: none; cursor: pointer;">
-                            <option :value="1">1 Copy (Original)</option>
-                            <option :value="2">2 Copies (Original &amp; Duplicate)</option>
-                            <option :value="3">3 Copies (Original, Duplicate &amp; Triplicate)</option>
-                        </select>
-                    </div>
-                    <button class="preview-print-btn" @click="window.print()">
-                        Print
-                    </button>
-                    <button class="preview-close-btn" @click="close">
-                        Close
-                    </button>
-                </div>
-            </div>
-
-            <div class="preview-body">
-                <div class="preview-scroll" style="display: flex; flex-direction: column; gap: 30px;">
-                    <div
-                        v-for="pageIdx in printCopies"
-                        :key="pageIdx"
-                        :style="paperStyle"
-                        class="preview-paper"
-                    >
-                        <div
-                            v-for="block in getPageBlocks(pageIdx)"
-                            :key="block.id"
-                            :style="getBlockStyle(block)"
-                        >
-                            <component
-                                :is="getRenderer(block.type)"
-                                :block="block"
-                                :fill-mode="false"
-                                style="width: 100%; height: 100%"
-                            />
-                        </div>
-
-                        <div v-if="previewBlocks.length === 0" class="preview-empty">
-                            No blocks on canvas. Add blocks to see a preview.
-                        </div>
-                    </div>
-                </div>
-            </div>
+  <Teleport to="body">
+    <div v-if="visible" class="preview-overlay" @click.self="close">
+      <div class="preview-header">
+        <div class="preview-header-left">
+          <span class="preview-title">Document Preview</span>
+          <span class="preview-badge">{{ settingsStore.documentType }}</span>
+          <span class="preview-info">
+            {{ canvasStore.currentFormat?.label || "A4" }} ·
+            {{ canvasStore.orientation }}
+          </span>
         </div>
-    </Teleport>
+        <div class="preview-header-right">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-right: 12px;
+            "
+          >
+            <span style="font-size: 11px; color: rgba(255, 255, 255, 0.6)"
+              >Print Copies:</span
+            >
+            <select
+              v-model="printCopies"
+              style="
+                background: rgba(255, 255, 255, 0.08);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                border-radius: 4px;
+                padding: 4px 8px;
+                font-size: 11px;
+                color: white;
+                outline: none;
+                cursor: pointer;
+              "
+            >
+              <option :value="1">1 Copy (Original)</option>
+              <option :value="2">2 Copies (Original &amp; Duplicate)</option>
+              <option :value="3">
+                3 Copies (Original, Duplicate &amp; Triplicate)
+              </option>
+            </select>
+          </div>
+          <button class="preview-close-btn" @click="close">Close</button>
+        </div>
+      </div>
+
+      <div class="preview-body">
+        <div
+          class="preview-scroll"
+          style="display: flex; flex-direction: column; gap: 30px"
+        >
+          <div
+            v-for="pageIdx in printCopies"
+            :key="pageIdx"
+            :style="paperStyle"
+            class="preview-paper"
+          >
+            <div
+              v-for="block in getPageBlocks(pageIdx)"
+              :key="block.id"
+              :style="getBlockStyle(block)"
+            >
+              <component
+                :is="getRenderer(block.type)"
+                :block="block"
+                :fill-mode="false"
+                style="width: 100%; height: 100%"
+              />
+            </div>
+
+            <div v-if="previewBlocks.length === 0" class="preview-empty">
+              No blocks on canvas. Add blocks to see a preview.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
 .preview-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-    background: #1a1a2e;
-    display: flex;
-    flex-direction: column;
-    animation: fadeIn 0.15s ease;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.15s ease;
 }
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .preview-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 20px;
-    background: #16162a;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    flex-shrink: 0;
-    gap: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: #16162a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+  gap: 12px;
 }
 .preview-header-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 .preview-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: #fff;
-    white-space: nowrap;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
 }
 .preview-badge {
-    font-size: 10px;
-    font-weight: 600;
-    color: #00b4d8;
-    background: rgba(0, 180, 216, 0.12);
-    padding: 2px 8px;
-    border-radius: 4px;
-    text-transform: uppercase;
-    white-space: nowrap;
+  font-size: 10px;
+  font-weight: 600;
+  color: #00b4d8;
+  background: rgba(0, 180, 216, 0.12);
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 .preview-info {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.4);
-    white-space: nowrap;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
 }
 .preview-header-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 .preview-print-btn {
-    padding: 6px 14px;
-    font-size: 11px;
-    font-weight: 500;
-    color: #fff;
-    background: #00b4d8;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background 0.15s;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #fff;
+  background: #00b4d8;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.15s;
 }
 .preview-print-btn:hover {
-    background: #0098b8;
+  background: #0098b8;
 }
 .preview-close-btn {
-    padding: 6px 14px;
-    font-size: 11px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.7);
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background 0.15s;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.15s;
 }
 .preview-close-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
 }
 .preview-body {
-    flex: 1;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    overflow: auto;
-    padding: 30px;
-    background: #12121e;
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: auto;
+  padding: 30px;
+  background: #12121e;
 }
 .preview-scroll {
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
 }
 .preview-empty {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #999;
-    font-size: 13px;
-    font-style: italic;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 13px;
+  font-style: italic;
 }
 </style>

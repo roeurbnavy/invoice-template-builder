@@ -26,9 +26,12 @@ import {
     Grid3x3,
     Sun,
     Moon,
+    X,
 } from "@lucide/vue";
 
 import ConfirmModal from "../common/ConfirmModal.vue";
+
+const emit = defineEmits(["close", "save"]);
 
 const canvasStore = useCanvasStore();
 const settingsStore = useSettingsStore();
@@ -123,9 +126,9 @@ function handleSave() {
 
 function confirmSave() {
     const schema = buildSchema(saveName.value);
-    templateStore.saveTemplate(saveName.value, schema);
+    emit("save", schema);
     showSaveModal.value = false;
-    showToast(`✓ "${saveName.value}" saved to browser`, "success");
+    showToast(`✓ "${saveName.value}" saved`, "success");
 }
 
 // ─── Save to device (download JSON) ──────────────────────────
@@ -146,7 +149,6 @@ function buildSchema(name) {
         settings: {
             globalFont: settingsStore.globalFont,
             globalFontSize: settingsStore.globalFontSize,
-            currency: settingsStore.currency,
             documentType: settingsStore.documentType,
         },
     };
@@ -215,16 +217,16 @@ function handleResetToDefault() {
     );
 }
 
-const isLightTheme = ref(false);
+const isLightTheme = ref(true);
 
 onMounted(() => {
     const saved = localStorage.getItem("theme");
-    if (saved === "light") {
-        isLightTheme.value = true;
-        document.body.classList.add("light");
-    } else {
+    if (saved === "dark") {
         isLightTheme.value = false;
         document.body.classList.remove("light");
+    } else {
+        isLightTheme.value = true;
+        document.body.classList.add("light");
     }
 });
 
@@ -363,10 +365,10 @@ function toggleTheme() {
 
         <div class="topbar-sep" />
 
-        <!-- Save to browser -->
+        <!-- Save -->
         <button
             class="btn btn-ghost"
-            data-tooltip="Save template changes (Local Storage)"
+            data-tooltip="Save template changes"
             @click="handleSave"
         >
             <Save :size="13" />
@@ -427,6 +429,18 @@ function toggleTheme() {
 
         <div class="topbar-sep" />
 
+        <!-- Closed -->
+        <button
+            class="btn btn-ghost text-danger"
+            data-tooltip="Close Builder"
+            @click="emit('close')"
+        >
+            <X :size="13" />
+            Closed
+        </button>
+
+        <div class="topbar-sep" />
+
         <!-- Theme Toggle -->
         <button
             class="btn btn-ghost btn-icon"
@@ -471,8 +485,7 @@ function toggleTheme() {
                         margin-bottom: 16px;
                     "
                 >
-                    "Save to Browser" stores the template in this browser
-                    session. "Download .json" saves a file to your device.
+                    "Save" stores the template. "Download .json" saves a copy to your device.
                 </p>
                 <label class="field-label">Template Name</label>
                 <input
@@ -502,7 +515,7 @@ function toggleTheme() {
                         @click="confirmSave"
                     >
                         <Save :size="13" />
-                        Save to Browser
+                        Save
                     </button>
                 </div>
             </div>
