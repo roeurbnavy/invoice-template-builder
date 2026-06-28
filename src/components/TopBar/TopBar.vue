@@ -152,6 +152,7 @@ function buildSchema(name) {
             documentType: settingsStore.documentType,
             printMarginTop: settingsStore.printMarginTop,
             printMarginBottom: settingsStore.printMarginBottom,
+            printMarginTopFirst: settingsStore.printMarginTopFirst,
         },
     };
 }

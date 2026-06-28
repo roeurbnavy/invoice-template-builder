@@ -32,6 +32,7 @@ export const useSettingsStore = defineStore("settings", () => {
 
   const printMarginTop = ref(15);
   const printMarginBottom = ref(15);
+  const printMarginTopFirst = ref(0);
 
   const fonts = ref(FONTS);
 
@@ -55,6 +56,9 @@ export const useSettingsStore = defineStore("settings", () => {
   function setPrintMarginBottom(val) {
     printMarginBottom.value = val;
   }
+  function setPrintMarginTopFirst(val) {
+    printMarginTopFirst.value = val;
+  }
 
   function setDocumentSchemas(schemas) {
     documentSchemas.value = schemas;
@@ -74,6 +78,7 @@ export const useSettingsStore = defineStore("settings", () => {
     globalFontSize,
     printMarginTop,
     printMarginBottom,
+    printMarginTopFirst,
     fonts,
     documentTypes,
     documentSchemas,
@@ -83,6 +88,7 @@ export const useSettingsStore = defineStore("settings", () => {
     setGlobalFontSize,
     setPrintMarginTop,
     setPrintMarginBottom,
+    setPrintMarginTopFirst,
     setDocumentSchemas,
     setSampleData,
   };

@@ -841,6 +841,10 @@ select.inp option {
         margin-right: var(--print-margin-right, var(--print-page-margin, 0mm)) !important;
     }
 
+    @page :first {
+        margin-top: var(--print-margin-top-first, var(--print-page-margin, 0mm)) !important;
+    }
+
     /* Hide all UI chrome, guide lines, selection highlights, etc. */
     .topbar,
     .app-main > aside,

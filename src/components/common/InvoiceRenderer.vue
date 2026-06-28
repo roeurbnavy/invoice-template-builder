@@ -42,6 +42,7 @@ const props = defineProps({
   globalFontSize: { type: Number, default: 13 },
   printMarginTop: { type: Number, default: 15 },
   printMarginBottom: { type: Number, default: 15 },
+  printMarginTopFirst: { type: Number, default: 0 },
 });
 
 const RENDERERS = {
@@ -140,12 +141,48 @@ const computedTableHeight = computed(() => {
   return headerHeight + rowsHeight + emptyRowsHeight + specialRowsHeight + 10;
 });
 
-const tableHeightDelta = computed(() => {
+const tableShiftOffset = computed(() => {
   const itemTable = props.blocks.find((b) => b.type === "item_table");
   if (!itemTable) return 0;
+
   const designHeight = parseFloat(itemTable.height) || 200;
+  const designY = parseFloat(itemTable.y) || 0;
+  const designEnd = designY + designHeight;
+
   const actualHeight = computedTableHeight.value;
-  return actualHeight > designHeight ? actualHeight - designHeight : 0;
+  const dim = paperDimensions.value;
+  const formatHeight = dim.height;
+
+  // Read margins in mm and convert to pixels (1mm = 3.78px)
+  const marginT = (props.printMarginTop ?? 15) * 3.78;
+  const marginB = (props.printMarginBottom ?? 15) * 3.78;
+  const marginT1 = (props.printMarginTopFirst ?? 0) * 3.78;
+  
+  const page1HeightPx = formatHeight - (marginT1 + marginB);
+  const pageHeightPx = formatHeight - (marginT + marginB);
+
+  const headerFontSize = itemTable.headerFontSize ?? itemTable.bodyFontSize ?? 12;
+  const headerHeight = itemTable.showHeader !== false ? (headerFontSize + 24) : 0;
+
+  let physicalEnd = designY + actualHeight;
+  const page1Space = page1HeightPx - designY;
+
+  if (actualHeight > page1Space) {
+    let remaining = actualHeight - page1Space;
+    let pageIndex = 1;
+    let currentY = formatHeight + marginT;
+    const subPageSpace = pageHeightPx - headerHeight;
+
+    while (remaining > subPageSpace) {
+      remaining -= subPageSpace;
+      pageIndex++;
+      currentY = pageIndex * formatHeight + marginT;
+    }
+
+    physicalEnd = currentY + headerHeight + remaining;
+  }
+
+  return physicalEnd - designEnd;
 });
 
 const computedDocumentHeight = computed(() => {
@@ -161,7 +198,7 @@ const computedDocumentHeight = computed(() => {
     const itemTableY = itemTable ? parseFloat(itemTable.y) || 0 : 0;
 
     if (itemTable && blockY > itemTableY) {
-      yOffset = tableHeightDelta.value;
+      yOffset = tableShiftOffset.value;
     }
 
     const bottom = blockY + yOffset + blockHeight;
@@ -185,8 +222,9 @@ const paperStyle = computed(() => {
     fontFamily: props.globalFont,
     fontSize: `${props.globalFontSize}px`,
     color: "#000000",
-    "--print-margin-top": `${props.printMarginTop ?? 0}mm`,
-    "--print-margin-bottom": `${props.printMarginBottom ?? 0}mm`,
+    "--print-margin-top": `${props.printMarginTop ?? 15}mm`,
+    "--print-margin-bottom": `${props.printMarginBottom ?? 15}mm`,
+    "--print-margin-top-first": `${props.printMarginTopFirst ?? 0}mm`,
   };
 });
 
@@ -197,7 +235,7 @@ function getBlockStyle(block) {
   const itemTableY = itemTable ? parseFloat(itemTable.y) || 0 : 0;
 
   if (itemTable && blockY > itemTableY) {
-    yOffset = tableHeightDelta.value;
+    yOffset = tableShiftOffset.value;
   }
   return {
     position: "absolute",
