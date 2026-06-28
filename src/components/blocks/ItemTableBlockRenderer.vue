@@ -786,7 +786,12 @@ watch(editingSpecialRowId, (newId) => { if (newId) nextTick(() => document.query
                                 <template v-else>
                                     <input v-if="fillMode && editingCell?.r === row.index && editingCell?.colId === col.id" :value="row.item[col.id]" class="inline-cell-input" @input="updateItemValue(row.localIndex, col.id, $event.target.value)" @blur="editingCell = null; commitHistory()" @keydown="handleKeyDown" />
                                     <span v-else-if="!col.subFields?.length">{{ formatVal(col, row.item) }}</span>
-                                    <div v-else class="multi-value-cell" :style="{ display: 'flex', flexWrap: 'wrap', gap: '2px 6px' }">
+                                    <div v-else class="multi-value-cell" :style="{
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        gap: '2px 6px',
+                                        justifyContent: getCellAlign(row.index, col) === 'right' ? 'flex-end' : (getCellAlign(row.index, col) === 'center' ? 'center' : 'flex-start')
+                                    }">
                                         <span :style="{
                                             fontWeight: col.bold ? 'bold' : undefined,
                                             color: col.color ?? undefined,
