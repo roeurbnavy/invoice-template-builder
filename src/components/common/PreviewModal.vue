@@ -170,6 +170,8 @@ const paperStyle = computed(() => {
     fontFamily: settingsStore.globalFont || "Noto Sans, sans-serif",
     fontSize: `${settingsStore.globalFontSize || 13}px`,
     color: "#000000",
+    '--print-margin-top': `${settingsStore.printMarginTop ?? 15}mm`,
+    '--print-margin-bottom': `${settingsStore.printMarginBottom ?? 15}mm`,
   };
 });
 

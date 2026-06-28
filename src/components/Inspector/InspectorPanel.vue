@@ -37,6 +37,7 @@ import { useBlockStore } from "../../stores/blocks.js";
 import { useInspectorStore } from "../../stores/inspector.js";
 import { useHistoryStore } from "../../stores/history.js";
 import { useCanvasStore } from "../../stores/canvas.js";
+import { useSettingsStore } from "../../stores/settings.js";
 import {
     Settings,
     Lock,
@@ -62,6 +63,7 @@ const blockStore = useBlockStore();
 const inspectorStore = useInspectorStore();
 const historyStore = useHistoryStore();
 const canvasStore = useCanvasStore();
+const settingsStore = useSettingsStore();
 
 const block = computed(() => blockStore.selectedBlock);
 const isSelected = computed(() => !!block.value);
@@ -255,15 +257,85 @@ const formatBlockName = (type) => {
             ✏ FILL MODE — Click any block to type
         </div>
 
-        <!-- Empty State -->
-        <div v-if="!isSelected" class="empty-state" style="flex: 1">
-            <div class="empty-state-icon">
-                <Settings :size="24" class="text-panel-muted" />
+        <!-- Document Settings (when no block is selected) -->
+        <div v-if="!isSelected" class="global-settings-panel" style="flex: 1; padding: 16px; overflow-y: auto;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--color-panel-border); padding-bottom: 12px;">
+                <Settings :size="18" class="text-panel-muted" />
+                <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--color-panel-text);">Document Settings</h3>
             </div>
-            <p style="font-weight: 500">No Block Selected</p>
-            <p style="font-size: 11px; max-width: 200px">
-                Select a block on the canvas to inspect and edit its properties.
-            </p>
+            
+            <!-- Global Font Settings -->
+            <div class="field-group" style="margin-bottom: 20px;">
+                <div class="field-label" style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-panel-muted); margin-bottom: 8px;">Typography</div>
+                <div class="field-single" style="margin-bottom: 10px;">
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Global Font</label>
+                    <select
+                        :value="settingsStore.globalFont"
+                        class="inp"
+                        @change="settingsStore.setGlobalFont($event.target.value)"
+                    >
+                        <option
+                            v-for="font in settingsStore.fonts"
+                            :key="font.value"
+                            :value="font.value"
+                        >
+                            {{ font.name }}
+                        </option>
+                    </select>
+                </div>
+                <div class="field-single">
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Global Font Size</label>
+                    <div class="field-unit">
+                        <input
+                            type="number"
+                            :value="settingsStore.globalFontSize"
+                            class="inp"
+                            min="8"
+                            max="32"
+                            @input="settingsStore.setGlobalFontSize(parseInt($event.target.value) || 12)"
+                        />
+                        <span class="field-unit-label">px</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Global Print Margins -->
+            <div class="field-group" style="margin-bottom: 16px;">
+                <div class="field-label" style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-panel-muted); margin-bottom: 8px;">Print Margins (Page Breaks)</div>
+                <div class="field-row" style="display: flex; gap: 10px; margin-bottom: 8px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Top Margin</label>
+                        <div class="field-unit">
+                            <input
+                                type="number"
+                                :value="settingsStore.printMarginTop"
+                                class="inp"
+                                min="0"
+                                max="100"
+                                @input="settingsStore.setPrintMarginTop(parseInt($event.target.value) ?? 15)"
+                            />
+                            <span class="field-unit-label">mm</span>
+                        </div>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Bottom Margin</label>
+                        <div class="field-unit">
+                            <input
+                                type="number"
+                                :value="settingsStore.printMarginBottom"
+                                class="inp"
+                                min="0"
+                                max="100"
+                                @input="settingsStore.setPrintMarginBottom(parseInt($event.target.value) ?? 15)"
+                            />
+                            <span class="field-unit-label">mm</span>
+                        </div>
+                    </div>
+                </div>
+                <p style="font-size: 10px; color: var(--color-panel-muted); line-height: 1.4; margin: 4px 0 0 0;">
+                    Adjusts spacing at the top and bottom of print pages (e.g. around page breaks).
+                </p>
+            </div>
         </div>
 
         <!-- Inspector Content -->

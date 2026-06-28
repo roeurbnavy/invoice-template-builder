@@ -37,6 +37,8 @@ const props = defineProps({
     orientation: { type: String, default: "portrait" },
     globalFont: { type: String, default: "Noto Sans, sans-serif" },
     globalFontSize: { type: Number, default: 13 },
+    printMarginTop: { type: Number, default: 15 },
+    printMarginBottom: { type: Number, default: 15 },
 });
 
 const RENDERERS = {
@@ -178,6 +180,8 @@ const paperStyle = computed(() => {
         fontFamily: props.globalFont,
         fontSize: `${props.globalFontSize}px`,
         color: "#000000",
+        '--print-margin-top': `${props.printMarginTop ?? 15}mm`,
+        '--print-margin-bottom': `${props.printMarginBottom ?? 15}mm`,
     };
 });
 

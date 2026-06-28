@@ -150,6 +150,8 @@ function buildSchema(name) {
             globalFont: settingsStore.globalFont,
             globalFontSize: settingsStore.globalFontSize,
             documentType: settingsStore.documentType,
+            printMarginTop: settingsStore.printMarginTop,
+            printMarginBottom: settingsStore.printMarginBottom,
         },
     };
 }

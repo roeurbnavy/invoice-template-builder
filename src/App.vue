@@ -67,6 +67,10 @@ onMounted(() => {
               settingsStore.setGlobalFont(draft.settings.globalFont);
             if (draft.settings.globalFontSize)
               settingsStore.setGlobalFontSize(draft.settings.globalFontSize);
+            if (draft.settings.printMarginTop !== undefined)
+              settingsStore.setPrintMarginTop(draft.settings.printMarginTop);
+            if (draft.settings.printMarginBottom !== undefined)
+              settingsStore.setPrintMarginBottom(draft.settings.printMarginBottom);
           }
           loaded = true;
         }
@@ -103,6 +107,8 @@ onMounted(() => {
         documentType: settingsStore.documentType,
         globalFont: settingsStore.globalFont,
         globalFontSize: settingsStore.globalFontSize,
+        printMarginTop: settingsStore.printMarginTop,
+        printMarginBottom: settingsStore.printMarginBottom,
       },
     };
     emit('save', schema);
@@ -132,6 +138,8 @@ watch(
     () => settingsStore.documentType,
     () => settingsStore.globalFont,
     () => settingsStore.globalFontSize,
+    () => settingsStore.printMarginTop,
+    () => settingsStore.printMarginBottom,
     () => templateStore.currentTemplateName,
   ],
   () => {
@@ -144,6 +152,8 @@ watch(
         documentType: settingsStore.documentType,
         globalFont: settingsStore.globalFont,
         globalFontSize: settingsStore.globalFontSize,
+        printMarginTop: settingsStore.printMarginTop,
+        printMarginBottom: settingsStore.printMarginBottom,
       },
     };
     localStorage.setItem("invoice_builder_draft", JSON.stringify(schema));

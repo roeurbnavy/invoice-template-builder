@@ -29,6 +29,9 @@ export const useSettingsStore = defineStore('settings', () => {
   const documentType = ref('Custom')
   const globalFont = ref('"Noto Sans", sans-serif')
   const globalFontSize = ref(13)
+  
+  const printMarginTop = ref(15)
+  const printMarginBottom = ref(15)
 
   const fonts = ref(FONTS)
   
@@ -40,6 +43,8 @@ export const useSettingsStore = defineStore('settings', () => {
   function setDocumentType(type) { documentType.value = type }
   function setGlobalFont(font) { globalFont.value = font }
   function setGlobalFontSize(size) { globalFontSize.value = size }
+  function setPrintMarginTop(val) { printMarginTop.value = val }
+  function setPrintMarginBottom(val) { printMarginBottom.value = val }
   
   function setDocumentSchemas(schemas) {
     documentSchemas.value = schemas
@@ -55,8 +60,10 @@ export const useSettingsStore = defineStore('settings', () => {
 
   return {
     documentType, globalFont, globalFontSize,
+    printMarginTop, printMarginBottom,
     fonts, documentTypes, documentSchemas, sampleData,
     setDocumentType, setGlobalFont, setGlobalFontSize,
+    setPrintMarginTop, setPrintMarginBottom,
     setDocumentSchemas, setSampleData,
   }
 })
