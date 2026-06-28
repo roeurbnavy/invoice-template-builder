@@ -887,6 +887,14 @@ select.inp option {
         overflow: visible !important;
     }
 
+    .invoice-renderer-sheet {
+        height: auto !important;
+        min-height: 0 !important;
+        box-shadow: none !important;
+        margin: 0 auto !important;
+        overflow: visible !important;
+    }
+
     /* Ensure all blocks and their contents are visible */
     .canvas-block {
         overflow: visible !important;
@@ -921,6 +929,8 @@ select.inp option {
     body.preview-open .preview-paper {
         margin: 0 auto !important;
         box-shadow: none !important;
+        height: auto !important;
+        min-height: 0 !important;
         page-break-after: always !important;
         break-after: page !important;
         page-break-inside: avoid !important;
