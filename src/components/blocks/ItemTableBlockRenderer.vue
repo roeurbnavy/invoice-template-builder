@@ -123,6 +123,7 @@ const headerRow1 = computed(() => {
                     textAlign: 'center',
                     verticalAlign: 'middle',
                     fontSize: `${props.block.headerFontSize ?? props.block.bodyFontSize ?? 12}px`,
+                    padding: headerPaddingStyle.value,
                 }
             });
             i += count;
@@ -142,6 +143,7 @@ const headerRow1 = computed(() => {
                     textAlign: props.block.headerHAlign ?? align(col),
                     verticalAlign: props.block.headerVAlign ?? 'middle',
                     fontSize: `${props.block.headerFontSize ?? props.block.bodyFontSize ?? 12}px`,
+                    padding: headerPaddingStyle.value,
                 }
             });
             i++;
@@ -166,6 +168,7 @@ const headerRow2 = computed(() => {
                     textAlign: props.block.headerHAlign ?? align(col),
                     verticalAlign: props.block.headerVAlign ?? 'middle',
                     fontSize: `${props.block.headerFontSize ?? props.block.bodyFontSize ?? 12}px`,
+                    padding: headerPaddingStyle.value,
                 }
             });
         }
@@ -679,7 +682,41 @@ function getCellCustomStyles(r, col) {
     };
 }
 
-const cellPaddingStyle = computed(() => props.block.cellPadding !== undefined ? `${props.block.cellPadding}px` : null);
+const cellPaddingStyle = computed(() => {
+    const p = props.block;
+    const hasTop = p.cellPaddingTop !== undefined;
+    const hasRight = p.cellPaddingRight !== undefined;
+    const hasBottom = p.cellPaddingBottom !== undefined;
+    const hasLeft = p.cellPaddingLeft !== undefined;
+    
+    if (hasTop || hasRight || hasBottom || hasLeft) {
+        const top = hasTop ? `${p.cellPaddingTop}px` : (p.cellPadding !== undefined ? `${p.cellPadding}px` : '6px');
+        const right = hasRight ? `${p.cellPaddingRight}px` : (p.cellPadding !== undefined ? `${p.cellPadding}px` : '8px');
+        const bottom = hasBottom ? `${p.cellPaddingBottom}px` : (p.cellPadding !== undefined ? `${p.cellPadding}px` : '6px');
+        const left = hasLeft ? `${p.cellPaddingLeft}px` : (p.cellPadding !== undefined ? `${p.cellPadding}px` : '8px');
+        return `${top} ${right} ${bottom} ${left}`;
+    }
+    
+    return p.cellPadding !== undefined ? `${p.cellPadding}px` : null;
+});
+
+const headerPaddingStyle = computed(() => {
+    const p = props.block;
+    const hasTop = p.headerPaddingTop !== undefined;
+    const hasRight = p.headerPaddingRight !== undefined;
+    const hasBottom = p.headerPaddingBottom !== undefined;
+    const hasLeft = p.headerPaddingLeft !== undefined;
+    
+    if (hasTop || hasRight || hasBottom || hasLeft) {
+        const top = hasTop ? `${p.headerPaddingTop}px` : '6px';
+        const right = hasRight ? `${p.headerPaddingRight}px` : '8px';
+        const bottom = hasBottom ? `${p.headerPaddingBottom}px` : '6px';
+        const left = hasLeft ? `${p.headerPaddingLeft}px` : '8px';
+        return `${top} ${right} ${bottom} ${left}`;
+    }
+    
+    return cellPaddingStyle.value ?? '6px 8px';
+});
 
 function getRowBgColor(r) { return props.block.alternatingRows ? (r % 2 === 0 ? (props.block.row1Color ?? '#ffffff') : (props.block.row2Color ?? '#fafafa')) : 'transparent'; }
 
@@ -755,7 +792,7 @@ watch(editingSpecialRowId, (newId) => { if (newId) nextTick(() => document.query
                     <th v-for="col in visibleColumns" :key="col.id" :class="'header-cell-' + col.id" :style="{
                         background: block.headerBg ?? '#f5f5f5', color: block.headerColor ?? '#333', fontWeight: block.headerFontWeight ?? 'bold',
                         fontFamily: block.headerFontFamily ?? 'inherit',
-                        padding: cellPaddingStyle ?? '6px 8px', textAlign: block.headerHAlign ?? align(col), verticalAlign: block.headerVAlign ?? 'middle',
+                        padding: headerPaddingStyle, textAlign: block.headerHAlign ?? align(col), verticalAlign: block.headerVAlign ?? 'middle',
                         border: cellBorder(), fontSize: `${block.headerFontSize ?? block.bodyFontSize ?? 12}px`, whiteSpace: 'nowrap'
                     }" @contextmenu="onColumnHeaderContextMenu(col, $event)" @dblclick="editingHeaderColId = col.id">
                         <input v-if="editingHeaderColId === col.id" :value="col.label" class="inline-cell-input header-edit-input" :style="{ color: block.headerColor ?? '#333', background: 'white', fontWeight: block.headerFontWeight ?? 'bold' }" @input="updateColumnProp(col.id, 'label', $event.target.value)" @blur="editingHeaderColId = null; commitHistory()" @keydown.enter="editingHeaderColId = null; commitHistory()" @keydown.esc="editingHeaderColId = null" />

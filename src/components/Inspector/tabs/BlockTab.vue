@@ -1825,28 +1825,69 @@ function handleSubDataKeyChange(colId, subIdx, val) {
             <option value="dotted">Dotted</option>
           </select>
         </div>
-        <div>
-          <label
-            style="
-              font-size: 10px;
-              color: var(--color-panel-muted);
-              display: block;
-              margin-bottom: 2px;
-            "
-            >Cell Padding</label
-          >
-          <div class="field-unit">
+      </div>
+      <div style="margin-top: 8px; margin-bottom: 12px">
+        <label
+          style="
+            font-size: 10px;
+            color: var(--color-panel-muted);
+            display: block;
+            margin-bottom: 4px;
+          "
+          >Body Cell Padding (px)</label
+        >
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+          <div>
+            <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px; text-align: center;">Top</label>
             <input
               type="number"
-              :value="block.cellPadding"
+              :value="block.cellPaddingTop !== undefined ? block.cellPaddingTop : block.cellPadding"
               class="inp"
               min="0"
               max="30"
-              placeholder="Auto"
-              @input="handleInput('cellPadding', $event)"
+              placeholder="6"
+              @input="handleInput('cellPaddingTop', $event)"
               @blur="commitHistory"
             />
-            <span class="field-unit-label">px</span>
+          </div>
+          <div>
+            <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px; text-align: center;">Bottom</label>
+            <input
+              type="number"
+              :value="block.cellPaddingBottom !== undefined ? block.cellPaddingBottom : block.cellPadding"
+              class="inp"
+              min="0"
+              max="30"
+              placeholder="6"
+              @input="handleInput('cellPaddingBottom', $event)"
+              @blur="commitHistory"
+            />
+          </div>
+          <div>
+            <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px; text-align: center;">Left</label>
+            <input
+              type="number"
+              :value="block.cellPaddingLeft !== undefined ? block.cellPaddingLeft : block.cellPadding"
+              class="inp"
+              min="0"
+              max="30"
+              placeholder="8"
+              @input="handleInput('cellPaddingLeft', $event)"
+              @blur="commitHistory"
+            />
+          </div>
+          <div>
+            <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px; text-align: center;">Right</label>
+            <input
+              type="number"
+              :value="block.cellPaddingRight !== undefined ? block.cellPaddingRight : block.cellPadding"
+              class="inp"
+              min="0"
+              max="30"
+              placeholder="8"
+              @input="handleInput('cellPaddingRight', $event)"
+              @blur="commitHistory"
+            />
           </div>
         </div>
       </div>
@@ -2287,6 +2328,73 @@ function handleSubDataKeyChange(colId, subIdx, val) {
               @blur="commitHistory"
             />
             <span class="field-unit-label">px</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Header Padding -->
+      <div style="margin-top: 10px; margin-bottom: 4px">
+        <label
+          style="
+            font-size: 10px;
+            color: var(--color-panel-muted);
+            display: block;
+            margin-bottom: 4px;
+          "
+          >Header Padding (px)</label
+        >
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+          <div>
+            <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px; text-align: center;">Top</label>
+            <input
+              type="number"
+              :value="block.headerPaddingTop"
+              class="inp"
+              min="0"
+              max="30"
+              placeholder="6"
+              @input="handleInput('headerPaddingTop', $event)"
+              @blur="commitHistory"
+            />
+          </div>
+          <div>
+            <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px; text-align: center;">Bottom</label>
+            <input
+              type="number"
+              :value="block.headerPaddingBottom"
+              class="inp"
+              min="0"
+              max="30"
+              placeholder="6"
+              @input="handleInput('headerPaddingBottom', $event)"
+              @blur="commitHistory"
+            />
+          </div>
+          <div>
+            <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px; text-align: center;">Left</label>
+            <input
+              type="number"
+              :value="block.headerPaddingLeft"
+              class="inp"
+              min="0"
+              max="30"
+              placeholder="8"
+              @input="handleInput('headerPaddingLeft', $event)"
+              @blur="commitHistory"
+            />
+          </div>
+          <div>
+            <label style="font-size: 9px; color: var(--color-panel-muted); display: block; margin-bottom: 2px; text-align: center;">Right</label>
+            <input
+              type="number"
+              :value="block.headerPaddingRight"
+              class="inp"
+              min="0"
+              max="30"
+              placeholder="8"
+              @input="handleInput('headerPaddingRight', $event)"
+              @blur="commitHistory"
+            />
           </div>
         </div>
       </div>
