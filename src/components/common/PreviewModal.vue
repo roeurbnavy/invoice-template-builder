@@ -103,13 +103,21 @@ const computedTableHeight = computed(() => {
   const bodyFontSize = itemTable.bodyFontSize ?? 12;
 
   // Extract padding sizes
-  const hTop = itemTable.headerPaddingTop ?? (itemTable.cellPaddingTop ?? (itemTable.cellPadding ?? 6));
-  const hBottom = itemTable.headerPaddingBottom ?? (itemTable.cellPaddingBottom ?? (itemTable.cellPadding ?? 6));
+  const hTop =
+    itemTable.headerPaddingTop ??
+    itemTable.cellPaddingTop ??
+    itemTable.cellPadding ??
+    6;
+  const hBottom =
+    itemTable.headerPaddingBottom ??
+    itemTable.cellPaddingBottom ??
+    itemTable.cellPadding ??
+    6;
   const headerMinHeight = headerFontSize + hTop + hBottom + 10;
   const headerHeight = itemTable.showHeader !== false ? headerMinHeight : 0;
 
-  const pTop = itemTable.cellPaddingTop ?? (itemTable.cellPadding ?? 5);
-  const pBottom = itemTable.cellPaddingBottom ?? (itemTable.cellPadding ?? 5);
+  const pTop = itemTable.cellPaddingTop ?? itemTable.cellPadding ?? 5;
+  const pBottom = itemTable.cellPaddingBottom ?? itemTable.cellPadding ?? 5;
   const rowMinHeight = bodyFontSize + pTop + pBottom + 8;
 
   const defaultRowHeight = itemTable.defaultRowHeight ?? 30;
@@ -120,7 +128,8 @@ const computedTableHeight = computed(() => {
   }
 
   const emptyRowsCount = Math.max(0, (itemTable.emptyRows ?? 0) - itemsCount);
-  const emptyRowsHeight = emptyRowsCount * Math.max(defaultRowHeight, rowMinHeight);
+  const emptyRowsHeight =
+    emptyRowsCount * Math.max(defaultRowHeight, rowMinHeight);
 
   let specialRowsHeight = 0;
   if (Array.isArray(itemTable.specialRows)) {
@@ -143,7 +152,7 @@ const tableShiftOffset = computed(() => {
   if (!itemTable) return 0;
 
   const designHeight = parseFloat(itemTable.height) || 200;
-  const designY    = parseFloat(itemTable.y) || 0;
+  const designY = parseFloat(itemTable.y) || 0;
   const actualHeight = computedTableHeight.value;
 
   if (actualHeight <= designHeight) return 0;
@@ -151,20 +160,30 @@ const tableShiftOffset = computed(() => {
   const contentDelta = actualHeight - designHeight;
 
   // Compute the repeated header height (thead repeats on every new page)
-  const headerFontSize = itemTable.headerFontSize ?? itemTable.bodyFontSize ?? 12;
-  const hTop    = itemTable.headerPaddingTop ?? (itemTable.cellPaddingTop ?? (itemTable.cellPadding ?? 6));
-  const hBottom = itemTable.headerPaddingBottom ?? (itemTable.cellPaddingBottom ?? (itemTable.cellPadding ?? 6));
-  const headerH = itemTable.showHeader !== false ? (headerFontSize + hTop + hBottom + 10) : 0;
+  const headerFontSize =
+    itemTable.headerFontSize ?? itemTable.bodyFontSize ?? 12;
+  const hTop =
+    itemTable.headerPaddingTop ??
+    itemTable.cellPaddingTop ??
+    itemTable.cellPadding ??
+    6;
+  const hBottom =
+    itemTable.headerPaddingBottom ??
+    itemTable.cellPaddingBottom ??
+    itemTable.cellPadding ??
+    6;
+  const headerH =
+    itemTable.showHeader !== false ? headerFontSize + hTop + hBottom + 10 : 0;
 
   const MM_TO_PX = 3.7795;
   const fmt = canvasStore.currentFormat;
   const pageH = fmt?.height ?? 1123;
 
-  const marginTopPx    = (settingsStore.printMarginTop    ?? 0) * MM_TO_PX;
+  const marginTopPx = (settingsStore.printMarginTop ?? 0) * MM_TO_PX;
   const marginBottomPx = (settingsStore.printMarginBottom ?? 0) * MM_TO_PX;
-  const marginTop1Px   = (settingsStore.printMarginTopFirst ?? 0) * MM_TO_PX;
+  const marginTop1Px = (settingsStore.printMarginTopFirst ?? 0) * MM_TO_PX;
 
-  const page1Space = (pageH - marginBottomPx) - designY;
+  const page1Space = pageH - marginBottomPx - designY;
 
   // Each subsequent page: full page minus margins AND minus repeated header
   const subPageRowSpace = pageH - marginTopPx - marginBottomPx - headerH;
@@ -180,9 +199,12 @@ const tableShiftOffset = computed(() => {
   }
 
   // Gap added by @page margins at each page break
-  const gapFromBreaks = pageBreaks > 0
-    ? marginTop1Px + (pageBreaks - 1) * marginTopPx + pageBreaks * marginBottomPx
-    : 0;
+  const gapFromBreaks =
+    pageBreaks > 0
+      ? marginTop1Px +
+        (pageBreaks - 1) * marginTopPx +
+        pageBreaks * marginBottomPx
+      : 0;
 
   // Repeated <thead> adds headerH pixels for each page break
   const repeatedHeaderGap = pageBreaks * headerH;
@@ -207,7 +229,8 @@ const computedDocumentHeight = computed(() => {
       (b) => b.type === "item_table",
     );
     const itemTableY = itemTable ? parseFloat(itemTable.y) || 0 : 0;
-    const yOffset = (itemTable && blockY > itemTableY) ? tableShiftOffset.value : 0;
+    const yOffset =
+      itemTable && blockY > itemTableY ? tableShiftOffset.value : 0;
 
     const bottom = blockY + yOffset + blockHeight;
     if (bottom > maxHeight) maxHeight = bottom;
@@ -231,9 +254,9 @@ const paperStyle = computed(() => {
     fontFamily: settingsStore.globalFont || "Noto Sans, sans-serif",
     fontSize: `${settingsStore.globalFontSize || 13}px`,
     color: "#000000",
-    "--print-margin-top": `${settingsStore.printMarginTop ?? 15}mm`,
-    "--print-margin-bottom": `${settingsStore.printMarginBottom ?? 15}mm`,
-    "--print-margin-top-first": `${settingsStore.printMarginTopFirst ?? 0}mm`,
+    // "--print-margin-top": `${settingsStore.printMarginTop ?? 15}mm`,
+    // "--print-margin-bottom": `${settingsStore.printMarginBottom ?? 15}mm`,
+    // "--print-margin-top-first": `${settingsStore.printMarginTopFirst ?? 0}mm`,
   };
 });
 
