@@ -180,7 +180,7 @@ body,
 
 .btn-accent {
     background: var(--color-accent);
-    color: #0a1628;
+    color: var(--color-accent-text, #0a1628);
     font-weight: 600;
 }
 .btn-accent:hover {
@@ -978,6 +978,7 @@ body.light {
     --color-accent: #0284c7;
     --color-accent-hover: #0369a1;
     --color-accent-dim: rgba(2, 132, 199, 0.08);
+    --color-accent-text: #ffffff;
     --color-panel-hover-text: #0f172a;
     --color-input-bg: #f8fafc;
     --color-card-bg: #f1f5f9;
@@ -1013,5 +1014,17 @@ body.light .preview-body {
 }
 body.light .preview-info {
     color: #64748b;
+}
+body.light .preview-copies-label {
+    color: #475569;
+}
+body.light .preview-copies-select {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+body.light .preview-copies-select option {
+    background: #ffffff;
+    color: #0f172a;
 }
 

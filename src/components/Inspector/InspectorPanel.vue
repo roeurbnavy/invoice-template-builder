@@ -337,7 +337,7 @@ const formatBlockName = (type) => {
                         style="
                             font-size: 14px;
                             font-weight: 600;
-                            color: #fff;
+                            color: var(--color-panel-text, #ffffff);
                             margin: 0;
                         "
                     >

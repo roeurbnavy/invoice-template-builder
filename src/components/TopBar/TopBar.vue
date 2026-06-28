@@ -444,54 +444,81 @@ function toggleTheme() {
     <Teleport to="body">
         <div
             v-if="showSaveModal"
-            class="fixed inset-0 z-9999 flex items-center justify-center"
-            style="background: rgba(0, 0, 0, 0.6)"
+            class="fixed inset-0 z-9999 flex items-center justify-center p-4 backdrop-blur-md"
+            style="background: rgba(15, 23, 42, 0.45)"
             @click.self="showSaveModal = false"
         >
             <div
-                class="panel animate-fade-in"
+                class="panel"
                 style="
-                    border-radius: 12px;
-                    padding: 24px;
-                    width: 400px;
+                    border-radius: 16px;
+                    padding: 28px;
+                    width: 100%;
+                    max-width: 420px;
                     border: 1px solid var(--color-panel-border);
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
+                    animation: modalEntrance 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
                 "
             >
-                <h3
-                    style="
-                        font-size: 15px;
-                        font-weight: 600;
-                        margin-bottom: 4px;
-                    "
-                >
-                    Save Template
-                </h3>
-                <p
-                    style="
-                        font-size: 11px;
-                        color: var(--color-panel-muted);
-                        margin-bottom: 16px;
-                    "
-                >
-                    "Save" stores the template. "Download .json" saves a copy to your device.
-                </p>
-                <label class="field-label">Template Name</label>
-                <input
-                    v-model="saveName"
-                    class="inp"
-                    style="margin-bottom: 16px"
-                    placeholder="My Invoice Template"
-                />
-                <div class="flex gap-2 justify-end">
+                <div style="display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px;">
+                    <div style="
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 10px;
+                        background: rgba(0, 180, 216, 0.15);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: var(--color-accent);
+                        flex-shrink: 0;
+                    ">
+                        <FileText :size="20" />
+                    </div>
+                    <div style="flex: 1;">
+                        <h3
+                            style="
+                                font-size: 16px;
+                                font-weight: 600;
+                                margin: 0 0 4px 0;
+                                color: var(--color-panel-text);
+                            "
+                        >
+                            Save Template
+                        </h3>
+                        <p
+                            style="
+                                font-size: 11px;
+                                color: var(--color-panel-muted);
+                                margin: 0;
+                                line-height: 1.5;
+                            "
+                        >
+                            "Save" stores the template. "Download .json" saves a copy to your device.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="field-single" style="margin-bottom: 24px;">
+                    <label class="field-label" style="display: block; margin-bottom: 6px; font-weight: 600;">Template Name</label>
+                    <input
+                        v-model="saveName"
+                        class="inp"
+                        placeholder="My Invoice Template"
+                        style="padding: 8px 12px; font-size: 12px; border-radius: 8px;"
+                    />
+                </div>
+
+                <div class="flex gap-2 justify-end" style="border-top: 1px solid var(--color-panel-border); padding-top: 16px;">
                     <button
                         class="btn btn-ghost"
+                        style="padding: 8px 16px; border-radius: 8px;"
                         @click="showSaveModal = false"
                     >
                         Cancel
                     </button>
                     <button
-                        class="btn btn-ghost"
-                        style="gap: 5px"
+                        class="btn btn-panel"
+                        style="gap: 5px; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--color-panel-border);"
                         @click="downloadJson"
                     >
                         <Download :size="13" />
@@ -499,7 +526,7 @@ function toggleTheme() {
                     </button>
                     <button
                         class="btn btn-accent"
-                        style="gap: 5px"
+                        style="gap: 5px; padding: 8px 16px; border-radius: 8px; font-weight: 600;"
                         @click="confirmSave"
                     >
                         <Save :size="13" />
@@ -574,6 +601,14 @@ function toggleTheme() {
         transform: translateX(-50%) translateY(0);
     }
 }
-
-
+@keyframes modalEntrance {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
 </style>
