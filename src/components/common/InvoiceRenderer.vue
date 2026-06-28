@@ -119,10 +119,7 @@ function getBlockStyle(block) {
     left: `${parseFloat(block.x) || 0}px`,
     top: `${parseFloat(block.y) || 0}px`,
     width: `${parseFloat(block.width) || 0}px`,
-    height:
-      block.type === "item_table" || block.type === "table"
-        ? "auto"
-        : `${parseFloat(block.height) || 0}px`,
+    height: `${parseFloat(block.height) || 0}px`,
     transform: block.rotation ? `rotate(${block.rotation}deg)` : "none",
     opacity: block.opacity ?? 1,
     zIndex: block.zIndex ?? 0,
@@ -152,6 +149,7 @@ function getRenderer(type) {
           :is="getRenderer(block.type)"
           :block="block"
           :preview-data="data"
+          style="width: 100%; height: 100%"
         />
       </div>
     </div>

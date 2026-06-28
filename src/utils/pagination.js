@@ -78,16 +78,30 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
     return Math.max(defaultRowHeight, contentHeight + pTop + pBottom + 8);
   };
 
-  const emptyCount = Math.max(0, (table.emptyRows ?? 0) - items.length);
-  const totalRowsCount = items.length + emptyCount;
+  const tableY = parseFloat(table.y) || 0;
+  const tableHeight = parseFloat(table.height) || 200;
 
   // Build the list of rows with their index and type ('data' | 'empty' | 'special')
   const rows = [];
   for (let i = 0; i < items.length; i++) {
     rows.push({ type: "data", index: i, item: items[i], height: getRowHeight(items[i], i) });
   }
+
+  // Calculate how many empty rows are needed to fill the designed table height (tableHeight)
+  const minRowsHeight = tableHeight - headerHeight - 10;
+  let emptyCount = Math.max(0, (table.emptyRows ?? 0) - items.length);
+  const singleEmptyRowH = Math.max(defaultRowHeight, rowMinHeight);
+  
+  const currentTotalRowsHeight = rows.reduce((sum, r) => sum + r.height, 0) + (emptyCount * singleEmptyRowH);
+  if (currentTotalRowsHeight < minRowsHeight) {
+    const extraEmptyNeeded = Math.floor((minRowsHeight - currentTotalRowsHeight) / singleEmptyRowH);
+    if (extraEmptyNeeded > 0) {
+      emptyCount += extraEmptyNeeded;
+    }
+  }
+
   for (let i = 0; i < emptyCount; i++) {
-    rows.push({ type: "empty", index: items.length + i, height: Math.max(defaultRowHeight, rowMinHeight) });
+    rows.push({ type: "empty", index: items.length + i, height: singleEmptyRowH });
   }
 
   // Add special rows if any
@@ -99,9 +113,6 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
       rows.push({ type: "special", specialRow: sr, index: idx, height: srH });
     });
   }
-
-  const tableY = parseFloat(table.y) || 0;
-  const tableHeight = parseFloat(table.height) || 200;
 
   // Identify Header vs Footer blocks
   const headerBlocks = blocks.filter(b => b.id !== table.id && parseFloat(b.y) < tableY);
@@ -124,9 +135,9 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
     const adjustedBlocks = blocks.map(b => {
       const copy = JSON.parse(JSON.stringify(b));
       if (copy.id === table.id) {
-        copy.height = totalTableHeight;
+        copy.height = Math.max(tableHeight, totalTableHeight);
       } else if (parseFloat(copy.y) >= tableY + tableHeight) {
-        copy.y = (parseFloat(copy.y) || 0) + deltaHeight;
+        copy.y = (parseFloat(copy.y) || 0) + Math.max(0, deltaHeight);
       }
       return copy;
     });
@@ -167,9 +178,9 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
     // Everything fits on one page!
     const pageRowsHeight = getRemainingRowsHeight(0);
     const totalTableHeight = headerHeight + pageRowsHeight + 10;
-    const delta = totalTableHeight - tableHeight;
+    const delta = Math.max(0, totalTableHeight - tableHeight);
 
-    firstPageTable.height = totalTableHeight;
+    firstPageTable.height = Math.max(tableHeight, totalTableHeight);
     firstPageTable.itemsData = items; // Inject full items
     firstPageTable.renderRows = rows; // Inject all rows
     firstPageBlocks.push(firstPageTable);
@@ -202,7 +213,7 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
 
   // Adjust Page 1 table height to fit its rows
   const page1TableHeight = headerHeight + firstPageRows.reduce((sum, r) => sum + r.height, 0) + 10;
-  firstPageTable.height = page1TableHeight;
+  firstPageTable.height = Math.max(tableHeight, page1TableHeight);
   firstPageTable.renderRows = firstPageRows;
   firstPageBlocks.push(firstPageTable);
   pages.push({
@@ -226,14 +237,13 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
 
       // Table starts at top margin (40px)
       lastPageTable.y = 40;
-      lastPageTable.height = totalTableHeight;
+      lastPageTable.height = Math.max(tableHeight, totalTableHeight);
       lastPageTable.renderRows = lastPageRows;
       lastPageBlocks.push(lastPageTable);
 
-      // Footer blocks shifted below the table end
       const designFooterStart = tableY + tableHeight;
       const actualFooterStart = 40 + totalTableHeight;
-      const shift = actualFooterStart - designFooterStart;
+      const shift = Math.max(0, actualFooterStart - designFooterStart);
 
       footerBlocks.forEach(fb => {
         const copy = JSON.parse(JSON.stringify(fb));
@@ -275,7 +285,7 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
       const totalTableHeight = headerHeight + tableRowsHeight + 10;
 
       midPageTable.y = 40;
-      midPageTable.height = totalTableHeight;
+      midPageTable.height = Math.max(tableHeight, totalTableHeight);
       midPageTable.renderRows = midPageRows;
       midPageBlocks.push(midPageTable);
 
