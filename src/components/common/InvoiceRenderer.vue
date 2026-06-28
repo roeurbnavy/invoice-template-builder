@@ -165,7 +165,7 @@ const computedDocumentHeight = computed(() => {
         }
     });
     
-    return maxHeight + 40;
+    return maxHeight > dim.height ? (maxHeight + 20) : dim.height;
 });
 
 const paperStyle = computed(() => {

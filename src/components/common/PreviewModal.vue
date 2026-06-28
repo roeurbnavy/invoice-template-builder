@@ -152,7 +152,7 @@ const computedDocumentHeight = computed(() => {
     }
   });
   
-  return maxHeight + 40;
+  return maxHeight > (fmt?.height ?? 1123) ? (maxHeight + 20) : (fmt?.height ?? 1123);
 });
 
 const paperStyle = computed(() => {
