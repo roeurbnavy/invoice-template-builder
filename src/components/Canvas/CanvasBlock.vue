@@ -408,7 +408,7 @@ function applyTableStyle(prop, val) {
 
 // ─── Resize ───────────────────────────────────────────────────
 function onResizeStart(e, handle) {
-    if (isEditing.value) return;
+    canvasStore.editingBlockId = null;
     e.stopPropagation();
     e.preventDefault();
     resizing.value = true;
@@ -482,7 +482,7 @@ function onResizeStart(e, handle) {
 
 // ─── Rotate ───────────────────────────────────────────────────
 function onRotateStart(e) {
-    if (isEditing.value) return;
+    canvasStore.editingBlockId = null;
     e.stopPropagation();
     e.preventDefault();
     rotating.value = true;

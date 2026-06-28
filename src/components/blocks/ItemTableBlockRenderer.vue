@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, nextTick, watch, onMounted, onUnmounted } from "vue";
+import { useResizeObserver } from "@vueuse/core";
 import { useBlockStore } from "../../stores/blocks.js";
 import { useHistoryStore } from "../../stores/history.js";
 import { useCanvasStore } from "../../stores/canvas.js";
@@ -335,16 +336,6 @@ const emptyRows = computed(() => Array(Math.max(0, (props.block.emptyRows ?? 0) 
 const allRows = computed(() => {
     if (props.block.renderRows) {
         return props.block.renderRows.map((r, idx) => {
-            if (r.type === "special") {
-                return {
-                    index: `special-${r.index}`,
-                    isDataRow: false,
-                    isSpecialRow: true,
-                    specialRow: r.specialRow,
-                    item: null,
-                    localIndex: idx
-                };
-            }
             return {
                 index: r.index,
                 isDataRow: r.type === "data",
@@ -368,7 +359,6 @@ const selectionStart = ref(null);
 const selectionEnd = ref(null);
 const editingCell = ref(null);
 const editingHeaderColId = ref(null);
-const editingSpecialRowId = ref(null);
 
 const contextMenu = ref({ visible: false, x: 0, y: 0, type: 'cell', r: null, colId: null });
 
@@ -741,15 +731,7 @@ const headerPaddingStyle = computed(() => {
 
 function getRowBgColor(r) { return props.block.alternatingRows ? (r % 2 === 0 ? (props.block.row1Color ?? '#ffffff') : (props.block.row2Color ?? '#fafafa')) : 'transparent'; }
 
-function getSplitRowColspans(leftWidth) {
-    const N = visibleColumns.value.length, left = Math.max(1, Math.min(N - 1, Math.floor(N * ((leftWidth ?? 60) / 100))));
-    return { leftColspan: left, rightColspan: Math.max(1, N - left) };
-}
-
-function updateSpecialRowProp(id, p, v) {
-    const rows = JSON.parse(JSON.stringify(props.block.specialRows || []));
-    const r = rows.find(x => x.id === id); if (r) { r[p] = v; blockStore.updateBlock(props.block.id, { specialRows: rows }); }
-}
+// Special rows helpers removed
 
 function updateItemValue(idx, field, val) {
     const items = JSON.parse(JSON.stringify(props.block.items ?? []));
@@ -765,12 +747,25 @@ function addRowInline() {
 
 function commitHistory() { historyStore.push(JSON.parse(JSON.stringify(blockStore.blocks))); }
 
+const rootElement = ref(null);
+
+onMounted(() => {
+    if (!props.block.renderRows) {
+        useResizeObserver(rootElement, (entries) => {
+            const entry = entries[0];
+            const { height } = entry.contentRect;
+            if (height > 0 && Math.round(height) !== props.block.height) {
+                blockStore.updateBlock(props.block.id, { height: Math.round(height) });
+            }
+        });
+    }
+});
+
 watch(editingHeaderColId, (newId) => { if (newId) nextTick(() => document.querySelector(`.header-cell-${newId} input`)?.focus()); });
-watch(editingSpecialRowId, (newId) => { if (newId) nextTick(() => document.querySelector(`.special-row-${newId} input, .special-row-${newId} textarea`)?.focus()); });
 </script>
 
 <template>
-    <div style="width: 100%; overflow: visible">
+    <div ref="rootElement" style="width: 100%; overflow: visible">
         <table :style="tableStyle">
             <colgroup>
                 <col v-for="col in visibleColumns" :key="col.id" :style="{ width: col.width ? `${col.width}${col.widthUnit ?? '%'}` : undefined }" />
@@ -825,7 +820,7 @@ watch(editingSpecialRowId, (newId) => { if (newId) nextTick(() => document.query
             <tbody>
                 <template v-for="row in allRows" :key="row.index">
                     <!-- Standard Data/Empty Row -->
-                    <tr v-if="!row.isSpecialRow">
+                    <tr>
                         <template v-for="col in visibleColumns" :key="col.id">
                             <td v-if="shouldRenderCell(row.index, col.id)" :rowspan="getCellSpan(row.index, col.id).rowspan" :colspan="getCellSpan(row.index, col.id).colspan" :class="`cell-${row.index}-${col.id}`" :style="{
                                 padding: cellPaddingStyle ?? (row.isDataRow ? (col.id === 'no' || col.id === 'total' ? '5px 8px' : '2px 4px') : '5px 8px'), ...getCellBorderStyles(row.index, col.id, row.isDataRow),
@@ -870,54 +865,6 @@ watch(editingSpecialRowId, (newId) => { if (newId) nextTick(() => document.query
                             <div class="row-resizer" @mousedown.stop="onRowResizeStart(row.index, $event)"></div></td>
                         </template>
                     </tr>
-
-                    <!-- Special Summary/Header/Split/Divider Row -->
-                    <template v-else>
-                        <tr v-if="row.specialRow.type === 'summary'" :class="'special-row-' + row.specialRow.id" @click="editingSpecialRowId = row.specialRow.id; canvasStore.editingBlockId = props.block.id">
-                            <td :colspan="visibleColumns.length" :style="{ padding: cellPaddingStyle ?? '6px 8px', border: cellBorder(), background: row.specialRow.bgColor || block.summaryBg || '#f5f5f5', color: row.specialRow.textColor || block.summaryColor || '#333333', fontWeight: row.specialRow.fontWeight || (block.summaryBold !== false ? 'bold' : 'normal'), textAlign: row.specialRow.hAlign || 'left', verticalAlign: row.specialRow.vAlign || 'middle' }">
-                                <input v-if="fillMode && editingSpecialRowId === row.specialRow.id" :value="row.specialRow.text" class="inline-cell-input" @input="updateSpecialRowProp(row.specialRow.id, 'text', $event.target.value)" @blur="editingSpecialRowId = null; commitHistory()" @keydown.enter="editingSpecialRowId = null; commitHistory()" @keydown.esc="editingSpecialRowId = null" /><span v-else style="white-space: pre-wrap;">{{ row.specialRow.text || 'Click to edit summary' }}</span>
-                            </td>
-                        </tr>
-                        <tr v-else-if="row.specialRow.type === 'section_header'" :class="'special-row-' + row.specialRow.id" @click="editingSpecialRowId = row.specialRow.id; canvasStore.editingBlockId = props.block.id">
-                            <td :colspan="visibleColumns.length" :style="{ padding: cellPaddingStyle ?? '6px 8px', border: cellBorder(), background: row.specialRow.bgColor || '#f5f5f5', color: row.specialRow.textColor || '#333333', fontWeight: 'bold', textAlign: row.specialRow.hAlign || row.specialRow.alignment || 'left', verticalAlign: row.specialRow.vAlign || 'middle' }">
-                                <input v-if="fillMode && editingSpecialRowId === row.specialRow.id" :value="row.specialRow.text" class="inline-cell-input" @input="updateSpecialRowProp(row.specialRow.id, 'text', $event.target.value)" @blur="editingSpecialRowId = null; commitHistory()" @keydown.enter="editingSpecialRowId = null; commitHistory()" @keydown.esc="editingSpecialRowId = null" /><span v-else style="white-space: pre-wrap;">{{ row.specialRow.text || 'Click to edit section header' }}</span>
-                            </td>
-                        </tr>
-                        <tr v-else-if="row.specialRow.type === 'split'" :class="'special-row-' + row.specialRow.id" @click="editingSpecialRowId = row.specialRow.id; canvasStore.editingBlockId = props.block.id">
-                            <td :colspan="getSplitRowColspans(row.specialRow.leftWidth).leftColspan" :style="{ padding: cellPaddingStyle ?? '8px', border: cellBorder(), width: (row.specialRow.leftWidth ?? 60) + '%', textAlign: row.specialRow.leftHAlign || 'left', verticalAlign: row.specialRow.leftVAlign || 'top' }">
-                                <textarea v-if="fillMode && editingSpecialRowId === row.specialRow.id" :value="row.specialRow.leftText" class="inline-cell-input" @input="updateSpecialRowProp(row.specialRow.id, 'leftText', $event.target.value)" @blur="editingSpecialRowId = null; commitHistory()" /><span v-else :style="{ whiteSpace: 'pre-wrap', display: 'block', textAlign: row.specialRow.leftHAlign || 'left' }">{{ row.specialRow.leftText || 'Click to edit left section' }}</span>
-                            </td>
-                            <td :colspan="getSplitRowColspans(row.specialRow.leftWidth).rightColspan" :style="{ padding: cellPaddingStyle ?? '8px', border: cellBorder(), textAlign: row.specialRow.rightHAlign || 'right', verticalAlign: row.specialRow.rightVAlign || 'top' }">
-                                <textarea v-if="fillMode && editingSpecialRowId === row.specialRow.id" :value="row.specialRow.rightText" class="inline-cell-input" @input="updateSpecialRowProp(row.specialRow.id, 'rightText', $event.target.value)" @blur="editingSpecialRowId = null; commitHistory()" /><span v-else :style="{ whiteSpace: 'pre-wrap', display: 'block', textAlign: row.specialRow.rightHAlign || 'right' }">{{ row.specialRow.rightText || 'Click to edit right section' }}</span>
-                            </td>
-                        </tr>
-                        <tr v-else-if="row.specialRow.type === 'divider'"><td :colspan="visibleColumns.length" :style="{ padding: '4px 0', borderLeft: showBorders ? cellBorder() : 'none', borderRight: showBorders ? cellBorder() : 'none', borderTop: 'none', borderBottom: 'none' }"><div :style="{ borderTop: `${row.specialRow.thickness ?? 1}px solid ${row.specialRow.color ?? '#e0e0e0'}`, width: '100%' }" /></td></tr>
-                    </template>
-                </template>
-
-                <!-- Designer Fallback for Special Rows -->
-                <template v-if="!block.renderRows">
-                    <template v-for="sRow in (block.specialRows || [])" :key="sRow.id">
-                        <tr v-if="sRow.type === 'summary'" :class="'special-row-' + sRow.id" @click="editingSpecialRowId = sRow.id; canvasStore.editingBlockId = props.block.id">
-                            <td :colspan="visibleColumns.length" :style="{ padding: cellPaddingStyle ?? '6px 8px', border: cellBorder(), background: sRow.bgColor || block.summaryBg || '#f5f5f5', color: sRow.textColor || block.summaryColor || '#333333', fontWeight: sRow.fontWeight || (block.summaryBold !== false ? 'bold' : 'normal'), textAlign: sRow.hAlign || 'left', verticalAlign: sRow.vAlign || 'middle' }">
-                                <input v-if="fillMode && editingSpecialRowId === sRow.id" :value="sRow.text" class="inline-cell-input" @input="updateSpecialRowProp(sRow.id, 'text', $event.target.value)" @blur="editingSpecialRowId = null; commitHistory()" @keydown.enter="editingSpecialRowId = null; commitHistory()" @keydown.esc="editingSpecialRowId = null" /><span v-else style="white-space: pre-wrap;">{{ sRow.text || 'Click to edit summary' }}</span>
-                            </td>
-                        </tr>
-                        <tr v-else-if="sRow.type === 'section_header'" :class="'special-row-' + sRow.id" @click="editingSpecialRowId = sRow.id; canvasStore.editingBlockId = props.block.id">
-                            <td :colspan="visibleColumns.length" :style="{ padding: cellPaddingStyle ?? '6px 8px', border: cellBorder(), background: sRow.bgColor || '#f5f5f5', color: sRow.textColor || '#333333', fontWeight: 'bold', textAlign: sRow.hAlign || sRow.alignment || 'left', verticalAlign: sRow.vAlign || 'middle' }">
-                                <input v-if="fillMode && editingSpecialRowId === sRow.id" :value="sRow.text" class="inline-cell-input" @input="updateSpecialRowProp(sRow.id, 'text', $event.target.value)" @blur="editingSpecialRowId = null; commitHistory()" @keydown.enter="editingSpecialRowId = null; commitHistory()" @keydown.esc="editingSpecialRowId = null" /><span v-else style="white-space: pre-wrap;">{{ sRow.text || 'Click to edit section header' }}</span>
-                            </td>
-                        </tr>
-                        <tr v-else-if="sRow.type === 'split'" :class="'special-row-' + sRow.id" @click="editingSpecialRowId = sRow.id; canvasStore.editingBlockId = props.block.id">
-                            <td :colspan="getSplitRowColspans(sRow.leftWidth).leftColspan" :style="{ padding: cellPaddingStyle ?? '8px', border: cellBorder(), width: (sRow.leftWidth ?? 60) + '%', textAlign: sRow.leftHAlign || 'left', verticalAlign: sRow.leftVAlign || 'top' }">
-                                <textarea v-if="fillMode && editingSpecialRowId === sRow.id" :value="sRow.leftText" class="inline-cell-input" @input="updateSpecialRowProp(sRow.id, 'leftText', $event.target.value)" @blur="editingSpecialRowId = null; commitHistory()" /><span v-else :style="{ whiteSpace: 'pre-wrap', display: 'block', textAlign: sRow.leftHAlign || 'left' }">{{ sRow.leftText || 'Click to edit left section' }}</span>
-                            </td>
-                            <td :colspan="getSplitRowColspans(sRow.leftWidth).rightColspan" :style="{ padding: cellPaddingStyle ?? '8px', border: cellBorder(), textAlign: sRow.rightHAlign || 'right', verticalAlign: sRow.rightVAlign || 'top' }">
-                                <textarea v-if="fillMode && editingSpecialRowId === sRow.id" :value="sRow.rightText" class="inline-cell-input" @input="updateSpecialRowProp(sRow.id, 'rightText', $event.target.value)" @blur="editingSpecialRowId = null; commitHistory()" /><span v-else :style="{ whiteSpace: 'pre-wrap', display: 'block', textAlign: sRow.rightHAlign || 'right' }">{{ sRow.rightText || 'Click to edit right section' }}</span>
-                            </td>
-                        </tr>
-                        <tr v-else-if="sRow.type === 'divider'"><td :colspan="visibleColumns.length" :style="{ padding: '4px 0', borderLeft: showBorders ? cellBorder() : 'none', borderRight: showBorders ? cellBorder() : 'none', borderTop: 'none', borderBottom: 'none' }"><div :style="{ borderTop: `${sRow.thickness ?? 1}px solid ${sRow.color ?? '#e0e0e0'}`, width: '100%' }" /></td></tr>
-                    </template>
                 </template>
             </tbody>
         </table>

@@ -2,8 +2,10 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { getBlockDefaults } from '../utils/blockDefaults.js'
 import { DOCUMENT_PRESETS } from '../constants/presets.js'
+import { useHistoryStore } from './history.js'
 
 export const useBlockStore = defineStore('blocks', () => {
+  const historyStore = useHistoryStore()
   // All blocks on canvas — keyed by their fabric object id (block.id)
   const blocks = ref([])
   const selectedIds = ref([])
@@ -63,29 +65,61 @@ export const useBlockStore = defineStore('blocks', () => {
   }
 
   function bringForward(id) {
-    const block = blocks.value.find(b => b.id === id)
-    if (!block) return
-    const next = blocks.value.find(b => b.zIndex === (block.zIndex ?? 0) + 1)
-    if (next) next.zIndex = (block.zIndex ?? 0)
-    block.zIndex = (block.zIndex ?? 0) + 1
+    const sorted = [...blocks.value].sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0));
+    const idx = sorted.findIndex(b => b.id === id);
+    if (idx === -1 || idx === sorted.length - 1) return;
+    
+    const temp = sorted[idx];
+    sorted[idx] = sorted[idx + 1];
+    sorted[idx + 1] = temp;
+    
+    sorted.forEach((b, i) => {
+      b.zIndex = i;
+    });
+    historyStore.push(JSON.parse(JSON.stringify(blocks.value)));
   }
 
   function sendBackward(id) {
-    const block = blocks.value.find(b => b.id === id)
-    if (!block || (block.zIndex ?? 0) <= 0) return
-    const prev = blocks.value.find(b => b.zIndex === (block.zIndex ?? 0) - 1)
-    if (prev) prev.zIndex = block.zIndex ?? 0
-    block.zIndex = (block.zIndex ?? 0) - 1
+    const sorted = [...blocks.value].sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0));
+    const idx = sorted.findIndex(b => b.id === id);
+    if (idx === -1 || idx === 0) return;
+    
+    const temp = sorted[idx];
+    sorted[idx] = sorted[idx - 1];
+    sorted[idx - 1] = temp;
+    
+    sorted.forEach((b, i) => {
+      b.zIndex = i;
+    });
+    historyStore.push(JSON.parse(JSON.stringify(blocks.value)));
   }
 
   function bringToFront(id) {
-    const maxZ = Math.max(...blocks.value.map(b => b.zIndex ?? 0))
-    updateBlock(id, { zIndex: maxZ + 1 })
+    const sorted = [...blocks.value].sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0));
+    const idx = sorted.findIndex(b => b.id === id);
+    if (idx === -1) return;
+    
+    const [block] = sorted.splice(idx, 1);
+    sorted.push(block);
+    
+    sorted.forEach((b, i) => {
+      b.zIndex = i;
+    });
+    historyStore.push(JSON.parse(JSON.stringify(blocks.value)));
   }
 
   function sendToBack(id) {
-    blocks.value.forEach(b => { b.zIndex = (b.zIndex ?? 0) + 1 })
-    updateBlock(id, { zIndex: 0 })
+    const sorted = [...blocks.value].sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0));
+    const idx = sorted.findIndex(b => b.id === id);
+    if (idx === -1) return;
+    
+    const [block] = sorted.splice(idx, 1);
+    sorted.unshift(block);
+    
+    sorted.forEach((b, i) => {
+      b.zIndex = i;
+    });
+    historyStore.push(JSON.parse(JSON.stringify(blocks.value)));
   }
 
   function duplicateBlock(id) {
