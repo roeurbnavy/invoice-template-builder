@@ -299,41 +299,60 @@ const formatBlockName = (type) => {
                 </div>
             </div>
 
-            <!-- Global Print Margins -->
+            <!-- Page Break Padding -->
             <div class="field-group" style="margin-bottom: 16px;">
-                <div class="field-label" style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-panel-muted); margin-bottom: 8px;">Print Margins (Page Breaks)</div>
-                <div class="field-row" style="display: flex; gap: 10px; margin-bottom: 8px;">
-                    <div style="flex: 1;">
-                        <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Top Margin</label>
-                        <div class="field-unit">
-                            <input
-                                type="number"
-                                :value="settingsStore.printMarginTop"
-                                class="inp"
-                                min="0"
-                                max="100"
-                                @input="settingsStore.setPrintMarginTop(parseInt($event.target.value) ?? 15)"
-                            />
-                            <span class="field-unit-label">mm</span>
-                        </div>
-                    </div>
-                    <div style="flex: 1;">
-                        <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Bottom Margin</label>
-                        <div class="field-unit">
-                            <input
-                                type="number"
-                                :value="settingsStore.printMarginBottom"
-                                class="inp"
-                                min="0"
-                                max="100"
-                                @input="settingsStore.setPrintMarginBottom(parseInt($event.target.value) ?? 15)"
-                            />
-                            <span class="field-unit-label">mm</span>
-                        </div>
+                <div class="field-label" style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-panel-muted); margin-bottom: 8px;">Page Break Padding</div>
+
+                <!-- Page 2+ top -->
+                <div style="margin-bottom: 8px;">
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Top (Page 2+)</label>
+                    <div class="field-unit">
+                        <input
+                            type="number"
+                            :value="settingsStore.printMarginTop"
+                            class="inp"
+                            min="0"
+                            max="100"
+                            @input="settingsStore.setPrintMarginTop(parseFloat($event.target.value) ?? 0)"
+                        />
+                        <span class="field-unit-label">mm</span>
                     </div>
                 </div>
-                <p style="font-size: 10px; color: var(--color-panel-muted); line-height: 1.4; margin: 4px 0 0 0;">
-                    Adjusts spacing at the top and bottom of print pages (e.g. around page breaks).
+
+                <!-- Bottom (all pages) -->
+                <div style="margin-bottom: 8px;">
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Bottom (All Pages)</label>
+                    <div class="field-unit">
+                        <input
+                            type="number"
+                            :value="settingsStore.printMarginBottom"
+                            class="inp"
+                            min="0"
+                            max="100"
+                            @input="settingsStore.setPrintMarginBottom(parseFloat($event.target.value) ?? 0)"
+                        />
+                        <span class="field-unit-label">mm</span>
+                    </div>
+                </div>
+
+                <!-- Page 1 top (usually 0 — header touches top edge) -->
+                <div style="margin-bottom: 4px;">
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Top (Page 1 only)</label>
+                    <div class="field-unit">
+                        <input
+                            type="number"
+                            :value="settingsStore.printMarginTopFirst"
+                            class="inp"
+                            min="0"
+                            max="100"
+                            @input="settingsStore.setPrintMarginTopFirst(parseFloat($event.target.value) ?? 0)"
+                        />
+                        <span class="field-unit-label">mm</span>
+                    </div>
+                </div>
+
+                <p style="font-size: 10px; color: var(--color-panel-muted); line-height: 1.4; margin: 6px 0 0 0;">
+                    Sets how much space is added at the top of each new printed page when the table breaks across pages.
                 </p>
             </div>
         </div>

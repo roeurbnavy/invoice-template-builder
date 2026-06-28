@@ -21,30 +21,59 @@ export function useKeyboardShortcuts() {
     const ctrl = e.ctrlKey || e.metaKey
     const shift = e.shiftKey
 
+    const key = (e.key || '').toLowerCase()
+    const code = e.code || ''
+
+    const isZ = code === 'KeyZ' || key === 'z'
+    const isY = code === 'KeyY' || key === 'y'
+    const isS = code === 'KeyS' || key === 's'
+    const isD = code === 'KeyD' || key === 'd'
+    const isC = code === 'KeyC' || key === 'c'
+    const isV = code === 'KeyV' || key === 'v'
+    const isA = code === 'KeyA' || key === 'a'
+    const isL = code === 'KeyL' || key === 'l'
+
     switch (true) {
       // Undo
-      case ctrl && !shift && e.key === 'z': {
+      case ctrl && !shift && isZ: {
         e.preventDefault()
         const snapshot = historyStore.undo()
         if (snapshot) blockStore.setBlocks(snapshot)
         break
       }
       // Redo
-      case ctrl && shift && e.key === 'Z':
-      case ctrl && e.key === 'y': {
+      case ctrl && shift && isZ:
+      case ctrl && isY: {
         e.preventDefault()
         const snapshot = historyStore.redo()
         if (snapshot) blockStore.setBlocks(snapshot)
         break
       }
       // Save
-      case ctrl && e.key === 's': {
+      case ctrl && isS: {
         e.preventDefault()
         document.dispatchEvent(new CustomEvent('app:save'))
         break
       }
+      // Copy
+      case ctrl && isC: {
+        e.preventDefault()
+        if (blockStore.selectedBlock) {
+          blockStore.copyBlock(blockStore.selectedBlock.id)
+        }
+        break
+      }
+      // Paste
+      case ctrl && isV: {
+        e.preventDefault()
+        if (blockStore.copiedBlock) {
+          historyStore.push(getSnapshot())
+          blockStore.pasteBlock()
+        }
+        break
+      }
       // Duplicate
-      case ctrl && e.key === 'd': {
+      case ctrl && isD: {
         e.preventDefault()
         if (blockStore.selectedBlock) {
           historyStore.push(getSnapshot())
@@ -53,7 +82,7 @@ export function useKeyboardShortcuts() {
         break
       }
       // Select all
-      case ctrl && e.key === 'a': {
+      case ctrl && isA: {
         e.preventDefault()
         blockStore.selectBlocks(blockStore.blocks.map(b => b.id))
         break
@@ -87,7 +116,7 @@ export function useKeyboardShortcuts() {
         break
       }
       // Lock
-      case ctrl && e.key === 'l': {
+      case ctrl && isL: {
         e.preventDefault()
         if (blockStore.selectedBlock) {
           const b = blockStore.selectedBlock

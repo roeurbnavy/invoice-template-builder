@@ -156,68 +156,72 @@ const tableShiftOffset = computed(() => {
   if (!itemTable) return 0;
 
   const designHeight = parseFloat(itemTable.height) || 200;
-  const designY = parseFloat(itemTable.y) || 0;
-  const designEnd = designY + designHeight;
-
+  const designY    = parseFloat(itemTable.y) || 0;
   const actualHeight = computedTableHeight.value;
+
+  if (actualHeight <= designHeight) return 0;
+
+  // Raw content delta (table grew beyond its design slot)
+  const contentDelta = actualHeight - designHeight;
+
+  // How many page breaks does the table cross?
+  // 1 mm = 3.7795 px  (CSS reference pixel)
+  const MM_TO_PX = 3.7795;
   const dim = paperDimensions.value;
-  const formatHeight = dim.height;
+  const pageH = dim.height; // total page height in px (e.g. 1123 for A4)
 
-  // Read margins in mm and convert to pixels (1mm = 3.78px)
-  const marginT = (props.printMarginTop ?? 15) * 3.78;
-  const marginB = (props.printMarginBottom ?? 15) * 3.78;
-  const marginT1 = (props.printMarginTopFirst ?? 0) * 3.78;
-  
-  const page1HeightPx = formatHeight - (marginT1 + marginB);
-  const pageHeightPx = formatHeight - (marginT + marginB);
+  const marginTopPx    = (props.printMarginTop    ?? 0) * MM_TO_PX;
+  const marginBottomPx = (props.printMarginBottom ?? 0) * MM_TO_PX;
+  const marginTop1Px   = (props.printMarginTopFirst ?? 0) * MM_TO_PX;
 
-  const headerFontSize = itemTable.headerFontSize ?? itemTable.bodyFontSize ?? 12;
-  const headerHeight = itemTable.showHeader !== false ? (headerFontSize + 24) : 0;
+  // Usable content height on page 1 (from table start to page edge)
+  const page1End   = pageH - marginBottomPx;   // bottom edge of page 1 content
+  const page1Space = page1End - designY;        // px available on page 1 for the table
 
-  let physicalEnd = designY + actualHeight;
-  const page1Space = page1HeightPx - designY;
-
+  // Count breaks
+  let pageBreaks = 0;
   if (actualHeight > page1Space) {
     let remaining = actualHeight - page1Space;
-    let pageIndex = 1;
-    let currentY = formatHeight + marginT;
-    const subPageSpace = pageHeightPx - headerHeight;
-
-    while (remaining > subPageSpace) {
-      remaining -= subPageSpace;
-      pageIndex++;
-      currentY = pageIndex * formatHeight + marginT;
+    const subsequentPageH = pageH - marginTopPx - marginBottomPx;
+    pageBreaks = 1;
+    while (remaining > subsequentPageH) {
+      remaining -= subsequentPageH;
+      pageBreaks++;
     }
-
-    physicalEnd = currentY + headerHeight + remaining;
   }
 
-  return physicalEnd - designEnd;
+  // Each break adds marginTop (page 2+) worth of gap.
+  // Page 1 → 2 adds marginTop1Px for the first subsequent page top.
+  // But we already applied marginTop1Px on the @page :first override
+  // so subsequent pages use printMarginTop.
+  const gapFromBreaks = pageBreaks > 0
+    ? marginTop1Px + (pageBreaks - 1) * marginTopPx + pageBreaks * marginBottomPx
+    : 0;
+
+  return contentDelta + gapFromBreaks;
 });
 
 const computedDocumentHeight = computed(() => {
   const dim = paperDimensions.value;
-  let maxHeight = dim.height;
 
+  // If the table doesn't overflow, content is designed for exactly one page
+  if (tableShiftOffset.value === 0) return dim.height;
+
+  // Table overflows — find the true bottom of all shifted blocks
+  let maxHeight = dim.height;
   props.blocks.forEach((block) => {
     const blockHeight = parseFloat(block.height) || 0;
     const blockY = parseFloat(block.y) || 0;
 
-    let yOffset = 0;
     const itemTable = props.blocks.find((b) => b.type === "item_table");
     const itemTableY = itemTable ? parseFloat(itemTable.y) || 0 : 0;
-
-    if (itemTable && blockY > itemTableY) {
-      yOffset = tableShiftOffset.value;
-    }
+    const yOffset = (itemTable && blockY > itemTableY) ? tableShiftOffset.value : 0;
 
     const bottom = blockY + yOffset + blockHeight;
-    if (bottom > maxHeight) {
-      maxHeight = bottom;
-    }
+    if (bottom > maxHeight) maxHeight = bottom;
   });
 
-  return maxHeight > dim.height ? maxHeight + 20 : dim.height;
+  return maxHeight + 20;
 });
 
 const paperStyle = computed(() => {

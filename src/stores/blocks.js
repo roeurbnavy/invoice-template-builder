@@ -102,6 +102,28 @@ export const useBlockStore = defineStore('blocks', () => {
     return newBlock
   }
 
+  const copiedBlock = ref(null)
+
+  function copyBlock(id) {
+    const block = blocks.value.find(b => b.id === id)
+    if (!block) return
+    copiedBlock.value = JSON.parse(JSON.stringify(block))
+  }
+
+  function pasteBlock() {
+    if (!copiedBlock.value) return null
+    const newBlock = {
+      ...JSON.parse(JSON.stringify(copiedBlock.value)),
+      id: crypto.randomUUID(),
+      x: (copiedBlock.value.x ?? 0) + 20,
+      y: (copiedBlock.value.y ?? 0) + 20,
+      zIndex: Math.max(...blocks.value.map(b => b.zIndex ?? 0), 0) + 1,
+    }
+    blocks.value.push(newBlock)
+    selectBlock(newBlock.id)
+    return newBlock
+  }
+
   function groupSelected() {
     const selected = blocks.value.filter(b => selectedIds.value.includes(b.id))
     if (selected.length < 2) return
@@ -186,6 +208,9 @@ export const useBlockStore = defineStore('blocks', () => {
     bringToFront,
     sendToBack,
     duplicateBlock,
+    copiedBlock,
+    copyBlock,
+    pasteBlock,
     clearAll,
     setBlocks,
     loadPreset,

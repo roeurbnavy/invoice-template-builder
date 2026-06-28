@@ -143,72 +143,66 @@ const tableShiftOffset = computed(() => {
   if (!itemTable) return 0;
 
   const designHeight = parseFloat(itemTable.height) || 200;
-  const designY = parseFloat(itemTable.y) || 0;
-  const designEnd = designY + designHeight;
-
+  const designY    = parseFloat(itemTable.y) || 0;
   const actualHeight = computedTableHeight.value;
+
+  if (actualHeight <= designHeight) return 0;
+
+  const contentDelta = actualHeight - designHeight;
+
+  const MM_TO_PX = 3.7795;
   const fmt = canvasStore.currentFormat;
-  const formatHeight = fmt?.height ?? 1123;
+  const pageH = fmt?.height ?? 1123;
 
-  // Read margins in mm and convert to pixels (1mm = 3.78px)
-  const marginT = (settingsStore.printMarginTop ?? 15) * 3.78;
-  const marginB = (settingsStore.printMarginBottom ?? 15) * 3.78;
-  const marginT1 = (settingsStore.printMarginTopFirst ?? 0) * 3.78;
-  
-  const page1HeightPx = formatHeight - (marginT1 + marginB);
-  const pageHeightPx = formatHeight - (marginT + marginB);
+  const marginTopPx    = (settingsStore.printMarginTop    ?? 0) * MM_TO_PX;
+  const marginBottomPx = (settingsStore.printMarginBottom ?? 0) * MM_TO_PX;
+  const marginTop1Px   = (settingsStore.printMarginTopFirst ?? 0) * MM_TO_PX;
 
-  const headerFontSize = itemTable.headerFontSize ?? itemTable.bodyFontSize ?? 12;
-  const headerHeight = itemTable.showHeader !== false ? (headerFontSize + 24) : 0;
+  const page1End   = pageH - marginBottomPx;
+  const page1Space = page1End - designY;
 
-  let physicalEnd = designY + actualHeight;
-  const page1Space = page1HeightPx - designY;
-
+  let pageBreaks = 0;
   if (actualHeight > page1Space) {
     let remaining = actualHeight - page1Space;
-    let pageIndex = 1;
-    let currentY = formatHeight + marginT;
-    const subPageSpace = pageHeightPx - headerHeight;
-
-    while (remaining > subPageSpace) {
-      remaining -= subPageSpace;
-      pageIndex++;
-      currentY = pageIndex * formatHeight + marginT;
+    const subsequentPageH = pageH - marginTopPx - marginBottomPx;
+    pageBreaks = 1;
+    while (remaining > subsequentPageH) {
+      remaining -= subsequentPageH;
+      pageBreaks++;
     }
-
-    physicalEnd = currentY + headerHeight + remaining;
   }
 
-  return physicalEnd - designEnd;
+  const gapFromBreaks = pageBreaks > 0
+    ? marginTop1Px + (pageBreaks - 1) * marginTopPx + pageBreaks * marginBottomPx
+    : 0;
+
+  return contentDelta + gapFromBreaks;
 });
 
 const computedDocumentHeight = computed(() => {
   const fmt = canvasStore.currentFormat;
-  let maxHeight = fmt?.height ?? 1123;
+  const pageH = fmt?.height ?? 1123;
 
+  // If the table doesn't overflow, content is designed for exactly one page
+  if (tableShiftOffset.value === 0) return pageH;
+
+  // Table overflows — find the true bottom of all shifted blocks
+  let maxHeight = pageH;
   blockStore.orderedBlocks.forEach((block) => {
     const blockHeight = parseFloat(block.height) || 0;
     const blockY = parseFloat(block.y) || 0;
 
-    let yOffset = 0;
     const itemTable = blockStore.orderedBlocks.find(
       (b) => b.type === "item_table",
     );
     const itemTableY = itemTable ? parseFloat(itemTable.y) || 0 : 0;
-
-    if (itemTable && blockY > itemTableY) {
-      yOffset = tableShiftOffset.value;
-    }
+    const yOffset = (itemTable && blockY > itemTableY) ? tableShiftOffset.value : 0;
 
     const bottom = blockY + yOffset + blockHeight;
-    if (bottom > maxHeight) {
-      maxHeight = bottom;
-    }
+    if (bottom > maxHeight) maxHeight = bottom;
   });
 
-  return maxHeight > (fmt?.height ?? 1123)
-    ? maxHeight + 20
-    : (fmt?.height ?? 1123);
+  return maxHeight + 20;
 });
 
 const paperStyle = computed(() => {
