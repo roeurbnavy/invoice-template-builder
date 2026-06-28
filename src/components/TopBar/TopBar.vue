@@ -299,21 +299,6 @@ function toggleTheme() {
             </option>
         </select>
 
-        <!-- Font -->
-        <select
-            v-model="settingsStore.globalFont"
-            class="topbar-select"
-            style="width: 130px"
-        >
-            <option
-                v-for="f in settingsStore.fonts"
-                :key="f.value"
-                :value="f.value"
-            >
-                {{ f.name }}
-            </option>
-        </select>
-
         <div class="topbar-sep" />
 
         <!-- Paper Formats -->

@@ -4,6 +4,7 @@ import { useCanvasStore } from "../../stores/canvas.js";
 import { useBlockStore } from "../../stores/blocks.js";
 import { useSettingsStore } from "../../stores/settings.js";
 import { getNestedValue, SAMPLE_DATA } from "../../utils/variableResolver.js";
+import { computeTableShiftOffset } from "../../utils/tableLayout.js";
 
 // Block renderers — same as CanvasBlock.vue
 import TextBlockRenderer from "../blocks/TextBlockRenderer.vue";
@@ -151,65 +152,18 @@ const tableShiftOffset = computed(() => {
   );
   if (!itemTable) return 0;
 
-  const designHeight = parseFloat(itemTable.height) || 200;
-  const designY = parseFloat(itemTable.y) || 0;
-  const actualHeight = computedTableHeight.value;
+  const bindingField = itemTable.dataBinding?.field || "items";
+  let sourceData = settingsStore.sampleData;
+  if (!sourceData || Object.keys(sourceData).length === 0) sourceData = SAMPLE_DATA;
+  if (!sourceData) sourceData = {};
 
-  if (actualHeight <= designHeight) return 0;
+  const allItems = getNestedValue(sourceData, bindingField) || itemTable.items || [];
+  const items = Array.isArray(allItems) ? allItems : [];
 
-  const contentDelta = actualHeight - designHeight;
-
-  // Compute the repeated header height (thead repeats on every new page)
-  const headerFontSize =
-    itemTable.headerFontSize ?? itemTable.bodyFontSize ?? 12;
-  const hTop =
-    itemTable.headerPaddingTop ??
-    itemTable.cellPaddingTop ??
-    itemTable.cellPadding ??
-    6;
-  const hBottom =
-    itemTable.headerPaddingBottom ??
-    itemTable.cellPaddingBottom ??
-    itemTable.cellPadding ??
-    6;
-  const headerH =
-    itemTable.showHeader !== false ? headerFontSize + hTop + hBottom + 10 : 0;
-
-  const MM_TO_PX = 3.7795;
   const fmt = canvasStore.currentFormat;
   const pageH = fmt?.height ?? 1123;
 
-  const marginTopPx = (settingsStore.printMarginTop ?? 0) * MM_TO_PX;
-  const marginBottomPx = (settingsStore.printMarginBottom ?? 0) * MM_TO_PX;
-  const marginTop1Px = (settingsStore.printMarginTopFirst ?? 0) * MM_TO_PX;
-
-  const page1Space = pageH - marginBottomPx - designY;
-
-  // Each subsequent page: full page minus margins AND minus repeated header
-  const subPageRowSpace = pageH - marginTopPx - marginBottomPx - headerH;
-
-  let pageBreaks = 0;
-  if (actualHeight > page1Space) {
-    let remaining = actualHeight - page1Space;
-    pageBreaks = 1;
-    while (remaining > subPageRowSpace) {
-      remaining -= subPageRowSpace;
-      pageBreaks++;
-    }
-  }
-
-  // Gap added by @page margins at each page break
-  const gapFromBreaks =
-    pageBreaks > 0
-      ? marginTop1Px +
-        (pageBreaks - 1) * marginTopPx +
-        pageBreaks * marginBottomPx
-      : 0;
-
-  // Repeated <thead> adds headerH pixels for each page break
-  const repeatedHeaderGap = pageBreaks * headerH;
-
-  return contentDelta + repeatedHeaderGap + gapFromBreaks;
+  return computeTableShiftOffset(itemTable, items, pageH, 0, 0);
 });
 
 const computedDocumentHeight = computed(() => {
@@ -254,9 +208,6 @@ const paperStyle = computed(() => {
     fontFamily: settingsStore.globalFont || "Noto Sans, sans-serif",
     fontSize: `${settingsStore.globalFontSize || 13}px`,
     color: "#000000",
-    // "--print-margin-top": `${settingsStore.printMarginTop ?? 15}mm`,
-    // "--print-margin-bottom": `${settingsStore.printMarginBottom ?? 15}mm`,
-    // "--print-margin-top-first": `${settingsStore.printMarginTopFirst ?? 0}mm`,
   };
 });
 

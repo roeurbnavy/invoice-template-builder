@@ -409,6 +409,29 @@ select.inp option {
     outline-offset: 1px;
 }
 
+/* Container block helper styles for canvas/editor */
+.canvas-block .container-block-renderer:not(.has-custom-border) {
+    border: 1px dashed rgba(0, 180, 216, 0.4) !important;
+}
+
+.canvas-block .container-block-renderer .container-label {
+    position: absolute;
+    top: 4px;
+    left: 6px;
+    font-size: 9px;
+    opacity: 0.3;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #000;
+    display: inline-block;
+}
+
+/* Hide helper label and dashed border outside of editor canvas */
+.container-block-renderer .container-label {
+    display: none;
+}
+
+
 .canvas-block.locked {
     cursor: default;
 }
@@ -833,19 +856,9 @@ select.inp option {
    Print Stylesheet — hides all UI, shows only the paper
    ============================================================ */
 @media print {
-    /* @page {
-        margin: var(--print-page-margin, 0mm) !important;
-        margin-top: var(--print-margin-top, var(--print-page-margin, 0mm)) !important;
-        margin-bottom: var(--print-margin-bottom, var(--print-page-margin, 0mm)) !important;
-        margin-left: var(--print-margin-left, var(--print-page-margin, 0mm)) !important;
-        margin-right: var(--print-margin-right, var(--print-page-margin, 0mm)) !important;
-    }
-
-    @page :first {
-        margin-top: var(--print-margin-top-first, var(--print-page-margin, 0mm)) !important;
-    } */
 
     /* Hide all UI chrome, guide lines, selection highlights, etc. */
+
     .topbar,
     .app-main > aside,
     .zoom-controls,
@@ -854,12 +867,17 @@ select.inp option {
     .resize-handle,
     .rotate-handle,
     .guide-line,
-    .canvas-block.selected,
     .print-hidden,
     [data-tooltip]::after {
         display: none !important;
         visibility: hidden !important;
     }
+
+    .canvas-block.selected {
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
 
     /* Reset app layout containers to static block flow so height collapses perfectly */
     html,

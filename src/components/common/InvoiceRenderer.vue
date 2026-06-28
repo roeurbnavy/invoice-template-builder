@@ -6,6 +6,7 @@ import {
 } from "../../constants/paperFormats.js";
 import { getNestedValue, SAMPLE_DATA } from "../../utils/variableResolver.js";
 import { useSettingsStore } from "../../stores/settings.js";
+import { computeTableShiftOffset } from "../../utils/tableLayout.js";
 
 // Block renderers — same as PreviewModal.vue
 import TextBlockRenderer from "../blocks/TextBlockRenderer.vue";
@@ -40,9 +41,6 @@ const props = defineProps({
   orientation: { type: String, default: "portrait" },
   globalFont: { type: String, default: "Noto Sans, sans-serif" },
   globalFontSize: { type: Number, default: 13 },
-  printMarginTop: { type: Number, default: 15 },
-  printMarginBottom: { type: Number, default: 15 },
-  printMarginTopFirst: { type: Number, default: 0 },
 });
 
 const RENDERERS = {
@@ -164,72 +162,26 @@ const tableShiftOffset = computed(() => {
   const itemTable = props.blocks.find((b) => b.type === "item_table");
   if (!itemTable) return 0;
 
-  const designHeight = parseFloat(itemTable.height) || 200;
-  const designY = parseFloat(itemTable.y) || 0;
-  const actualHeight = computedTableHeight.value;
-
-  if (actualHeight <= designHeight) return 0;
-
-  // Raw content delta (table grew beyond its design slot)
-  const contentDelta = actualHeight - designHeight;
-
-  // Compute the repeated header height (thead repeats on every new page)
-  const headerFontSize =
-    itemTable.headerFontSize ?? itemTable.bodyFontSize ?? 12;
-  const hTop =
-    itemTable.headerPaddingTop ??
-    itemTable.cellPaddingTop ??
-    itemTable.cellPadding ??
-    6;
-  const hBottom =
-    itemTable.headerPaddingBottom ??
-    itemTable.cellPaddingBottom ??
-    itemTable.cellPadding ??
-    6;
-  const headerH =
-    itemTable.showHeader !== false ? headerFontSize + hTop + hBottom + 10 : 0;
-
-  // How many page breaks does the table cross?
-  const MM_TO_PX = 3.7795;
-  const dim = paperDimensions.value;
-  const pageH = dim.height;
-
-  const marginTopPx = (props.printMarginTop ?? 0) * MM_TO_PX;
-  const marginBottomPx = (props.printMarginBottom ?? 0) * MM_TO_PX;
-  const marginTop1Px = (props.printMarginTopFirst ?? 0) * MM_TO_PX;
-
-  // Usable content height on page 1 from table top
-  const page1Space = pageH - marginBottomPx - designY;
-
-  // Each subsequent page: full page minus margins AND minus repeated header
-  // (because thead re-renders, consuming space for content rows)
-  const subPageRowSpace = pageH - marginTopPx - marginBottomPx - headerH;
-
-  let pageBreaks = 0;
-  if (actualHeight > page1Space) {
-    // remaining = content that still needs to fit on page 2+
-    // actualHeight already includes headerH once (for page 1)
-    let remaining = actualHeight - page1Space;
-    pageBreaks = 1;
-    while (remaining > subPageRowSpace) {
-      remaining -= subPageRowSpace;
-      pageBreaks++;
-    }
+  // Resolve items the same way computedTableHeight does
+  const bindingField = itemTable.dataBinding?.field || "items";
+  let sourceData = props.data;
+  if (!sourceData || Object.keys(sourceData).length === 0) {
+    try {
+      const settingsStore = useSettingsStore();
+      sourceData = settingsStore.sampleData;
+    } catch (e) {}
   }
+  if (!sourceData || Object.keys(sourceData).length === 0) sourceData = SAMPLE_DATA;
+  if (!sourceData) sourceData = {};
 
-  // Gap added by @page margins at each page break
-  const gapFromBreaks =
-    pageBreaks > 0
-      ? marginTop1Px +
-        (pageBreaks - 1) * marginTopPx +
-        pageBreaks * marginBottomPx
-      : 0;
+  const allItems = getNestedValue(sourceData, bindingField) || itemTable.items || [];
+  const items = Array.isArray(allItems) ? allItems : [];
 
-  // Repeated <thead> adds headerH pixels for each page break
-  const repeatedHeaderGap = pageBreaks * headerH;
+  const dim = paperDimensions.value;
 
-  return contentDelta + repeatedHeaderGap + gapFromBreaks;
+  return computeTableShiftOffset(itemTable, items, dim.height, 0, 0);
 });
+
 
 const computedDocumentHeight = computed(() => {
   const dim = paperDimensions.value;
@@ -267,9 +219,6 @@ const paperStyle = computed(() => {
     fontFamily: props.globalFont,
     fontSize: `${props.globalFontSize}px`,
     color: "#000000",
-    // "--print-margin-top": `${props.printMarginTop ?? 15}mm`,
-    // "--print-margin-bottom": `${props.printMarginBottom ?? 15}mm`,
-    // "--print-margin-top-first": `${props.printMarginTopFirst ?? 0}mm`,
   };
 });
 

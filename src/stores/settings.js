@@ -30,10 +30,6 @@ export const useSettingsStore = defineStore("settings", () => {
   const globalFont = ref('"Noto Sans Khmer", "Noto Sans", sans-serif');
   const globalFontSize = ref(13);
 
-  const printMarginTop = ref(15);
-  const printMarginBottom = ref(15);
-  const printMarginTopFirst = ref(0);
-
   const fonts = ref(FONTS);
 
   const documentSchemas = ref(DOCUMENT_SCHEMAS);
@@ -49,15 +45,6 @@ export const useSettingsStore = defineStore("settings", () => {
   }
   function setGlobalFontSize(size) {
     globalFontSize.value = size;
-  }
-  function setPrintMarginTop(val) {
-    printMarginTop.value = val;
-  }
-  function setPrintMarginBottom(val) {
-    printMarginBottom.value = val;
-  }
-  function setPrintMarginTopFirst(val) {
-    printMarginTopFirst.value = val;
   }
 
   function setDocumentSchemas(schemas) {
@@ -76,9 +63,6 @@ export const useSettingsStore = defineStore("settings", () => {
     documentType,
     globalFont,
     globalFontSize,
-    printMarginTop,
-    printMarginBottom,
-    printMarginTopFirst,
     fonts,
     documentTypes,
     documentSchemas,
@@ -86,9 +70,6 @@ export const useSettingsStore = defineStore("settings", () => {
     setDocumentType,
     setGlobalFont,
     setGlobalFontSize,
-    setPrintMarginTop,
-    setPrintMarginBottom,
-    setPrintMarginTopFirst,
     setDocumentSchemas,
     setSampleData,
   };
