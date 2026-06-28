@@ -127,13 +127,25 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
     });
   }
 
+  const getParentContainer = (blockId) => {
+    return blocks.find(
+      (b) => b.type === "container" && (b.childIds ?? []).includes(blockId),
+    );
+  };
+
   // Identify Header vs Footer blocks
-  const headerBlocks = blocks.filter(
-    (b) => b.id !== table.id && parseFloat(b.y) < tableY,
-  );
-  const footerBlocks = blocks.filter(
-    (b) => b.id !== table.id && parseFloat(b.y) >= tableY,
-  );
+  const headerBlocks = blocks.filter((b) => {
+    if (b.id === table.id) return false;
+    const parent = getParentContainer(b.id);
+    const referenceY = parent ? parseFloat(parent.y) : parseFloat(b.y);
+    return referenceY < tableY;
+  });
+  const footerBlocks = blocks.filter((b) => {
+    if (b.id === table.id) return false;
+    const parent = getParentContainer(b.id);
+    const referenceY = parent ? parseFloat(parent.y) : parseFloat(b.y);
+    return referenceY >= tableY;
+  });
 
   // Compute footer elements bounding box height
   let footerHeight = 0;
@@ -158,8 +170,12 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
       const copy = JSON.parse(JSON.stringify(b));
       if (copy.id === table.id) {
         copy.height = Math.max(tableHeight, totalTableHeight);
-      } else if (parseFloat(copy.y) >= tableY) {
-        copy.y = (parseFloat(copy.y) || 0) + Math.max(0, deltaHeight);
+      } else {
+        const parent = getParentContainer(copy.id);
+        const referenceY = parent ? parseFloat(parent.y) : parseFloat(copy.y);
+        if (referenceY >= tableY) {
+          copy.y = (parseFloat(copy.y) || 0) + Math.max(0, deltaHeight);
+        }
       }
       return copy;
     });
@@ -176,8 +192,8 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
   const pages = [];
   let rowCursor = 0;
 
-  const firstPageMaxSpace = pageH - tableY - headerHeight - 40; // 40px safe margin
-  const middlePageMaxSpace = pageH - 40 - headerHeight - 40; // Starts at y = 40px
+  const firstPageMaxSpace = pageH - tableY - headerHeight - 20; // 20px safe margin
+  const middlePageMaxSpace = pageH - 20 - headerHeight - 20; // Starts at y = 20px
   // Let's pre-calculate total height of remaining rows to see if everything fits
   const getRemainingRowsHeight = (startIdx) => {
     let sum = 0;
@@ -264,13 +280,13 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
       );
       const totalTableHeight = headerHeight + tableRowsHeight + 10;
 
-      // Table starts at top margin (40px)
-      lastPageTable.y = 40;
+      // Table starts at top margin (20px)
+      lastPageTable.y = 20;
       lastPageTable.height = Math.max(tableHeight, totalTableHeight);
       lastPageTable.renderRows = lastPageRows;
       lastPageBlocks.push(lastPageTable);
 
-      const shift = 40 - tableY + Math.max(0, totalTableHeight - tableHeight);
+      const shift = 20 - tableY + Math.max(0, totalTableHeight - tableHeight);
 
       footerBlocks.forEach((fb) => {
         const copy = JSON.parse(JSON.stringify(fb));
@@ -311,7 +327,7 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
       const tableRowsHeight = midPageRows.reduce((sum, r) => sum + r.height, 0);
       const totalTableHeight = headerHeight + tableRowsHeight + 10;
 
-      midPageTable.y = 40;
+      midPageTable.y = 20;
       midPageTable.height = Math.max(tableHeight, totalTableHeight);
       midPageTable.renderRows = midPageRows;
       midPageBlocks.push(midPageTable);
@@ -332,7 +348,7 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
     )
   ) {
     const finalPageBlocks = [];
-    const actualFooterStart = 40; // Starts at top
+    const actualFooterStart = 20; // Starts at top
     const designFooterStart = tableY + tableHeight;
     const shift = actualFooterStart - designFooterStart;
 

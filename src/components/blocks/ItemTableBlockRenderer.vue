@@ -681,7 +681,9 @@ function getCellAlign(r, col) { return props.block.cellStyles?.[`${r}:${col.id}`
 function getCellVAlign(r, col) { return props.block.cellStyles?.[`${r}:${col.id}`]?.vAlign ?? vAlign(col); }
 
 function getCellCustomStyles(r, col) {
-    const rowStyle = props.block.rowStyles?.[r] ?? {}, cellStyle = props.block.cellStyles?.[`${r}:${col.id}`] ?? {};
+    const isDataRow = r < items.value.length;
+    const rowStyle = (isDataRow ? props.block.rowStyles?.[r] : null) ?? {};
+    const cellStyle = props.block.cellStyles?.[`${r}:${col.id}`] ?? {};
     const resolvedHeight = rowStyle.height ?? props.block.defaultRowHeight ?? undefined;
     return {
         backgroundColor: isCellSelected(r, col.id) ? 'rgba(0, 180, 216, 0.15)' : (cellStyle.bgColor ?? rowStyle.bgColor ?? getRowBgColor(r)),
@@ -862,7 +864,7 @@ watch(editingHeaderColId, (newId) => { if (newId) nextTick(() => document.queryS
                                 <template v-else>
                                     &nbsp;
                                 </template>
-                            <div class="row-resizer" @mousedown.stop="onRowResizeStart(row.index, $event)"></div></td>
+                            <div v-if="row.isDataRow" class="row-resizer" @mousedown.stop="onRowResizeStart(row.index, $event)"></div></td>
                         </template>
                     </tr>
                 </template>

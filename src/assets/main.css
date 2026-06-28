@@ -856,6 +856,9 @@ select.inp option {
    Print Stylesheet — hides all UI, shows only the paper
    ============================================================ */
 @media print {
+    @page {
+        margin: 0;
+    }
 
     /* Hide all UI chrome, guide lines, selection highlights, etc. */
 
