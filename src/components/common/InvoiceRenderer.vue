@@ -185,8 +185,8 @@ const paperStyle = computed(() => {
     fontFamily: props.globalFont,
     fontSize: `${props.globalFontSize}px`,
     color: "#000000",
-    // '--print-margin-top': `${props.printMarginTop ?? 0}mm`,
-    // '--print-margin-bottom': `${props.printMarginBottom ?? 0}mm`,
+    "--print-margin-top": `${props.printMarginTop ?? 0}mm`,
+    "--print-margin-bottom": `${props.printMarginBottom ?? 0}mm`,
   };
 });
 

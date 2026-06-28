@@ -835,8 +835,8 @@ select.inp option {
 @media print {
     @page {
         margin: var(--print-page-margin, 0mm) !important;
-        margin-top: var(--print-margin-top, var(--print-page-margin, 15mm)) !important;
-        margin-bottom: var(--print-margin-bottom, var(--print-page-margin, 15mm)) !important;
+        margin-top: var(--print-margin-top, var(--print-page-margin, 0mm)) !important;
+        margin-bottom: var(--print-margin-bottom, var(--print-page-margin, 0mm)) !important;
         margin-left: var(--print-margin-left, var(--print-page-margin, 0mm)) !important;
         margin-right: var(--print-margin-right, var(--print-page-margin, 0mm)) !important;
     }

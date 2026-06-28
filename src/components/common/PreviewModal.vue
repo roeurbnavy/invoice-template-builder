@@ -180,8 +180,8 @@ const paperStyle = computed(() => {
     fontFamily: settingsStore.globalFont || "Noto Sans, sans-serif",
     fontSize: `${settingsStore.globalFontSize || 13}px`,
     color: "#000000",
-    // '--print-margin-top': `${settingsStore.printMarginTop ?? 0}mm`,
-    // '--print-margin-bottom': `${settingsStore.printMarginBottom ?? 0}mm`,
+    "--print-margin-top": `${settingsStore.printMarginTop ?? 0}mm`,
+    "--print-margin-bottom": `${settingsStore.printMarginBottom ?? 0}mm`,
   };
 });
 
