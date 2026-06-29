@@ -4,9 +4,9 @@ import {
   PAPER_FORMATS,
   getFormatDimensions,
 } from "../../constants/paperFormats.js";
-import { getNestedValue, SAMPLE_DATA } from "../../utils/variableResolver.js";
+// import { getNestedValue, SAMPLE_DATA } from "../../utils/variableResolver.js";
 import { useSettingsStore } from "../../stores/settings.js";
-import { computeTableShiftOffset } from "../../utils/tableLayout.js";
+// import { computeTableShiftOffset } from "../../utils/tableLayout.js";
 
 // Block renderers — same as PreviewModal.vue
 import TextBlockRenderer from "../blocks/TextBlockRenderer.vue";
@@ -92,9 +92,16 @@ const pages = computed(() => {
   try {
     settingsStore = useSettingsStore();
   } catch (e) {}
-
+  console.log("props", { ...props });
   const format = PAPER_FORMATS[props.formatId] || PAPER_FORMATS.A4;
-  return paginateTemplate(props.blocks, props.data, format, settingsStore);
+  const data = paginateTemplate(
+    props.blocks,
+    props.data,
+    format,
+    settingsStore,
+  );
+  console.log("data", data);
+  return data;
 });
 
 function getPageStyle(page) {
@@ -114,6 +121,7 @@ function getPageStyle(page) {
 }
 
 function getBlockStyle(block) {
+  console.log("block", block);
   return {
     position: "absolute",
     left: `${parseFloat(block.x) || 0}px`,

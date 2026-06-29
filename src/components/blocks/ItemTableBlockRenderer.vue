@@ -259,7 +259,7 @@ function subFieldStyle(sub, col) {
     };
 }
 
-function getCellBorderStyles(r, colId, isDataRow) {
+function getCellBorderStyles(r, colId, isDataRow, rowIndex) {
     const dataMode = props.block.dataRowBordersMode ?? 'grid';
     const emptyMode = props.block.emptyRowBordersMode ?? (props.block.showEmptyRowBorders === false ? 'none' : 'grid');
     const mode = isDataRow ? dataMode : emptyMode;
@@ -316,7 +316,7 @@ function getCellBorderStyles(r, colId, isDataRow) {
         borders.borderLeft = 'none';
         borders.borderRight = 'none';
     } else if (mode === 'vertical') {
-        const isLastRow = (r === allRows.value.length - 1);
+        const isLastRow = rowIndex !== undefined ? (rowIndex === allRows.value.length - 1) : (r === allRows.value.length - 1);
         borders.borderTop = 'none';
         borders.borderBottom = isLastRow ? baseBorder : 'none';
         borders.borderLeft = baseBorder;
@@ -820,12 +820,12 @@ watch(editingHeaderColId, (newId) => { if (newId) nextTick(() => document.queryS
                 </tr>
             </thead>
             <tbody>
-                <template v-for="row in allRows" :key="row.index">
+                <template v-for="(row, rowIndex) in allRows" :key="row.index">
                     <!-- Standard Data/Empty Row -->
                     <tr>
                         <template v-for="col in visibleColumns" :key="col.id">
                             <td v-if="shouldRenderCell(row.index, col.id)" :rowspan="getCellSpan(row.index, col.id).rowspan" :colspan="getCellSpan(row.index, col.id).colspan" :class="`cell-${row.index}-${col.id}`" :style="{
-                                padding: cellPaddingStyle ?? (row.isDataRow ? (col.id === 'no' || col.id === 'total' ? '5px 8px' : '2px 4px') : '5px 8px'), ...getCellBorderStyles(row.index, col.id, row.isDataRow),
+                                padding: cellPaddingStyle ?? (row.isDataRow ? (col.id === 'no' || col.id === 'total' ? '5px 8px' : '2px 4px') : '5px 8px'), ...getCellBorderStyles(row.index, col.id, row.isDataRow, rowIndex),
                                 textAlign: getCellAlign(row.index, col), verticalAlign: getCellVAlign(row.index, col), color: getCellCustomStyles(row.index, col).color,
                                 backgroundColor: isCellSelected(row.index, col.id) ? 'rgba(0, 180, 216, 0.15)' : getCellCustomStyles(row.index, col).backgroundColor,
                                 fontWeight: getCellCustomStyles(row.index, col).fontWeight, fontStyle: getCellCustomStyles(row.index, col).fontStyle, height: getCellCustomStyles(row.index, col).height,

@@ -35,6 +35,11 @@ function handleInput(prop, e, isNum = true) {
   }
 }
 
+function updateMaxRowsPerPage(e) {
+  const val = e.target.value === "" ? null : parseInt(e.target.value, 10);
+  updateProp("maxRowsPerPage", isNaN(val) ? null : val);
+}
+
 function handleCheckbox(prop, e) {
   updateProp(prop, e.target.checked);
   commitHistory();
@@ -1701,11 +1706,13 @@ function handleSubDataKeyChange(colId, subIdx, val) {
       <div class="field-row">
         <div>
           <label
+            title="Minimum number of empty placeholder rows to render for padding when there are few data items."
             style="
               font-size: 10px;
               color: var(--color-panel-muted);
               display: block;
               margin-bottom: 2px;
+              cursor: help;
             "
             >Empty Rows</label
           >
@@ -1719,6 +1726,32 @@ function handleSubDataKeyChange(colId, subIdx, val) {
             @blur="commitHistory"
           />
         </div>
+        <div>
+          <label
+            title="Maximum number of rows (data + empty) to render per page before forcing a page break."
+            style="
+              font-size: 10px;
+              color: var(--color-panel-muted);
+              display: block;
+              margin-bottom: 2px;
+              cursor: help;
+            "
+            >Max Rows / Page</label
+          >
+          <input
+            type="number"
+            placeholder="Auto"
+            :value="block.maxRowsPerPage"
+            class="inp"
+            min="1"
+            max="100"
+            @input="updateMaxRowsPerPage"
+            @blur="commitHistory"
+          />
+        </div>
+      </div>
+
+      <div class="field-row" style="margin-top: 8px">
         <div>
           <label
             style="
@@ -1742,8 +1775,8 @@ function handleSubDataKeyChange(colId, subIdx, val) {
             <span class="field-unit-label">px</span>
           </div>
         </div>
+        <div></div>
       </div>
-
 
       <!-- Body font -->
       <div class="field-row" style="margin-top: 8px">

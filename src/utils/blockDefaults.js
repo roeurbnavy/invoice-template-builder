@@ -171,6 +171,7 @@ export const BLOCK_DEFAULTS = {
     headerFontWeight: "bold",
     bodyFontSize: 12,
     emptyRows: 3,
+    maxRowsPerPage: null,
     showEmptyRowBorders: true,
     items: [],
   },
