@@ -29,6 +29,9 @@ export const useSettingsStore = defineStore("settings", () => {
   const documentType = ref("Custom");
   const globalFont = ref('"Noto Sans Khmer", "Noto Sans", sans-serif');
   const globalFontSize = ref(13);
+  const layoutMode = ref("freeform"); // "freeform" or "sections"
+  const repeatHeader = ref(false);     // repeat header blocks on every page
+  const repeatFooter = ref(false);     // repeat footer blocks on every page
 
   const fonts = ref(FONTS);
 
@@ -46,6 +49,11 @@ export const useSettingsStore = defineStore("settings", () => {
   function setGlobalFontSize(size) {
     globalFontSize.value = size;
   }
+  function setLayoutMode(mode) {
+    layoutMode.value = mode;
+  }
+  function setRepeatHeader(v) { repeatHeader.value = !!v; }
+  function setRepeatFooter(v) { repeatFooter.value = !!v; }
 
   function setDocumentSchemas(schemas) {
     documentSchemas.value = schemas;
@@ -63,6 +71,9 @@ export const useSettingsStore = defineStore("settings", () => {
     documentType,
     globalFont,
     globalFontSize,
+    layoutMode,
+    repeatHeader,
+    repeatFooter,
     fonts,
     documentTypes,
     documentSchemas,
@@ -70,6 +81,9 @@ export const useSettingsStore = defineStore("settings", () => {
     setDocumentType,
     setGlobalFont,
     setGlobalFontSize,
+    setLayoutMode,
+    setRepeatHeader,
+    setRepeatFooter,
     setDocumentSchemas,
     setSampleData,
   };

@@ -39,26 +39,33 @@ export function computeTableShiftOffset(
     itemTable.cellPaddingBottom ??
     itemTable.cellPadding ??
     6;
+  const lineHeightRatio = 1.35;
+  const hasBorders = itemTable.showBorders !== false;
+  const borderH = hasBorders ? 1 : 0;
   const headerH =
-    itemTable.showHeader !== false ? headerFontSize + hTop + hBottom + 10 : 0;
+    itemTable.showHeader !== false
+      ? Math.round((headerFontSize * lineHeightRatio + hTop + hBottom + borderH))
+      : 0;
 
   // Row min height
   const bodyFontSize = itemTable.bodyFontSize ?? 12;
   const pTop = itemTable.cellPaddingTop ?? itemTable.cellPadding ?? 5;
   const pBottom = itemTable.cellPaddingBottom ?? itemTable.cellPadding ?? 5;
-  const rowMinH = bodyFontSize + pTop + pBottom + 8;
-  const defaultRowH = itemTable.defaultRowHeight ?? 30;
+  const rowMinH = Math.round(bodyFontSize * lineHeightRatio + pTop + pBottom + borderH);
+  const defaultRowH = itemTable.defaultRowHeight;
+
+  const emptyCount = Math.max(0, (itemTable.emptyRows ?? 0) - items.length);
+  const totalRows = items.length + emptyCount;
 
   const getRowH = (i) => {
     if (i < items.length) {
       const custom = itemTable.rowStyles?.[i]?.height;
-      return Math.max(custom != null ? custom : defaultRowH, rowMinH);
+      if (custom != null) return Math.max(custom, rowMinH);
+      const naturalHeight = Math.round(bodyFontSize * lineHeightRatio + pTop + pBottom + borderH);
+      return Math.max(defaultRowH != null ? defaultRowH : naturalHeight, rowMinH);
     }
-    return Math.max(defaultRowH, rowMinH);
+    return Math.max(defaultRowH != null ? defaultRowH : rowMinH, rowMinH);
   };
-
-  const emptyCount = Math.max(0, (itemTable.emptyRows ?? 0) - items.length);
-  const totalRows = items.length + emptyCount;
 
   // Page 1: space below header down to page bottom edge
   let spaceRemaining = pageH - marginBottomPx - designY - headerH;
@@ -95,8 +102,8 @@ export function computeTableShiftOffset(
     });
   }
 
-  // Bottom border/padding buffer (mirrors +10 in computedTableHeight)
-  currentY += 10;
+  // Bottom border/padding buffer
+  currentY += borderH;
 
   const originalEnd = designY + designHeight;
   return Math.max(0, currentY - originalEnd);

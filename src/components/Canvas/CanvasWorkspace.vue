@@ -3,16 +3,20 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useCanvasStore } from '../../stores/canvas.js'
 import { useBlockStore } from '../../stores/blocks.js'
 import { useHistoryStore } from '../../stores/history.js'
+import { useSettingsStore } from '../../stores/settings.js'
 import { useDragAndDrop } from '../../composables/useDragAndDrop.js'
+import { getBlockDefaults } from '../../utils/blockDefaults.js'
 import ZoomControls from './ZoomControls.vue'
 import AlignmentGuides from './AlignmentGuides.vue'
 import CanvasBlock from './CanvasBlock.vue'
 import ContextMenu from './ContextMenu.vue'
 import CanvasRuler from './CanvasRuler.vue'
+import { notify } from '../../composables/useNotification.js'
 
 const canvasStore = useCanvasStore()
 const blockStore = useBlockStore()
 const historyStore = useHistoryStore()
+const settingsStore = useSettingsStore()
 const { onCanvasDrop, onCanvasDragOver } = useDragAndDrop()
 
 const workspaceEl = ref(null)
@@ -66,6 +70,121 @@ const visibleBlocks = computed(() => {
     return true;
   });
 })
+
+// Section classification computed properties
+const headerBlocks = computed(() => visibleBlocks.value.filter(b => b.section === 'header'));
+const tableBlocks = computed(() => visibleBlocks.value.filter(b => b.type === 'item_table'));
+const footerBlocks = computed(() => visibleBlocks.value.filter(b => b.section === 'footer'));
+
+// Drag zone tracking
+const activeDragZone = ref(null);
+
+function onSectionDragOver(e, zone) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+  activeDragZone.value = zone;
+}
+
+function onSectionDragLeave(zone) {
+  if (activeDragZone.value === zone) {
+    activeDragZone.value = null;
+  }
+}
+
+function onSectionDrop(e, zone) {
+  activeDragZone.value = null;
+  const blockType = e.dataTransfer.getData('blockType');
+  if (!blockType) return;
+
+  // Strict check: table zone only accepts item_table block
+  if (zone === 'table' && blockType !== 'item_table') {
+    notify('Table section only accepts Table blocks. Please place this block in Header or Footer section instead.', 'warning');
+    return;
+  }
+
+  // Cross check: table block can only go to table zone in sections mode
+  if (blockType === 'item_table' && zone !== 'table') {
+    zone = 'table';
+  }
+
+  const sectionRect = e.currentTarget.getBoundingClientRect();
+  const zoom = canvasStore.zoom;
+
+  const x = Math.round((e.clientX - sectionRect.left) / zoom);
+  const y = Math.round((e.clientY - sectionRect.top) / zoom);
+
+  const defaults = getBlockDefaults(blockType);
+  const block = {
+    ...defaults,
+    section: zone,
+    x: Math.max(0, x - defaults.width / 2),
+    y: Math.max(0, y - defaults.height / 2),
+  };
+
+  historyStore.push(JSON.parse(JSON.stringify(blockStore.blocks)));
+  const added = blockStore.addBlock(block);
+  if (added !== false) {
+    blockStore.selectBlock(block.id);
+  }
+}
+
+const headerHeight = computed(() => {
+  return headerBlocks.value.reduce((max, b) => Math.max(max, b.y + b.height), 120);
+});
+const tableHeight = computed(() => {
+  const tBlock = tableBlocks.value[0];
+  return tBlock ? tBlock.height : 200;
+});
+const footerHeight = computed(() => {
+  return footerBlocks.value.reduce((max, b) => Math.max(max, b.y + b.height), 120);
+});
+
+const pageBreaks = computed(() => {
+  const isSections = settingsStore.layoutMode === 'sections';
+  if (!isSections) return [];
+
+  const pageH = canvasStore.paperDimensions.height || 1123;
+  const totalH = headerHeight.value + tableHeight.value + footerHeight.value;
+  const breaks = [];
+
+  let currentY = pageH;
+  while (currentY < totalH) {
+    breaks.push(currentY);
+    currentY += pageH;
+  }
+  return breaks;
+});
+
+function getSectionStyle(type) {
+  const isSections = settingsStore.layoutMode === 'sections';
+  if (!isSections) return {};
+  
+  const base = {
+    position: 'relative',
+    width: '100%',
+    boxSizing: 'border-box',
+  };
+
+  switch (type) {
+    case 'header':
+      return {
+        ...base,
+        height: `${headerHeight.value}px`,
+      };
+    case 'table':
+      return {
+        ...base,
+        height: `${tableHeight.value}px`,
+      };
+    case 'footer':
+      return {
+        ...base,
+        height: `${footerHeight.value}px`,
+      };
+    default:
+      return base;
+  }
+}
 
 // ─── Drop handling ───────────────────────────────────────────
 function handleDrop(e) {
@@ -282,38 +401,154 @@ onUnmounted(() => {
           <div
             ref="paperEl"
             id="canvas-paper"
-            :style="paperStyle"
-            :class="{ 'drop-active': isDraggingOver }"
-            @drop.prevent="handleDrop"
-            @dragover.prevent="handleDragOver"
-            @dragleave="handleDragLeave"
+            :style="[
+              paperStyle,
+              settingsStore.layoutMode === 'sections'
+                ? { display: 'flex', flexDirection: 'column', height: 'auto', minHeight: paperStyle.height, overflow: 'visible' }
+                : {}
+            ]"
+            :class="{ 'drop-active': isDraggingOver && settingsStore.layoutMode === 'freeform' }"
+            @drop.prevent="settingsStore.layoutMode === 'freeform' ? handleDrop($event) : null"
+            @dragover.prevent="settingsStore.layoutMode === 'freeform' ? handleDragOver($event) : null"
+            @dragleave="settingsStore.layoutMode === 'freeform' ? handleDragLeave($event) : null"
             @contextmenu.prevent
           >
             <!-- Grid overlay -->
             <div v-if="canvasStore.showGrid" class="grid-overlay" />
 
-            <!-- Margin indicator -->
-            <div class="margin-indicator" style="
-              position: absolute;
-              inset: 20px;
-              border: 1px dashed rgba(0,180,216,0.15);
-              pointer-events: none;
-              z-index: 0;
-            " />
-
             <!-- Alignment Guides (rendered inside paper) -->
             <AlignmentGuides />
 
-            <!-- Drag-select rect -->
-            <div v-if="dragSelect.active" :style="dragSelectStyle" />
+            <!-- Visual Page Break Indicators (Sections Mode) -->
+            <div
+              v-for="(y, index) in pageBreaks"
+              :key="y"
+              class="canvas-page-break"
+              :style="{
+                position: 'absolute',
+                top: `${y * canvasStore.zoom}px`,
+                left: 0,
+                right: 0,
+                height: 0,
+                borderTop: '2px dashed rgba(0, 180, 216, 0.45)',
+                zIndex: 20,
+                pointerEvents: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+              }"
+            >
+              <span style="
+                font-size: 10px;
+                font-weight: 700;
+                color: var(--color-accent);
+                background: var(--color-panel-bg, #1e1e2f);
+                padding: 2.5px 8px;
+                border-radius: 4px;
+                border: 1px solid rgba(0, 180, 216, 0.3);
+                transform: translateY(-50%) translateX(-12px);
+                box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+                user-select: none;
+              ">
+                Page {{ index + 1 }} Break
+              </span>
+            </div>
 
-            <!-- Blocks -->
-            <CanvasBlock
-              v-for="block in visibleBlocks"
-              :key="block.id"
-              :block="block"
-              @contextmenu.stop="(e) => showContextMenu(e, block.id)"
-            />
+            <!-- IF FREEFORM MODE -->
+            <template v-if="settingsStore.layoutMode === 'freeform'">
+              <!-- Margin indicator -->
+              <div class="margin-indicator" style="
+                position: absolute;
+                inset: 20px;
+                border: 1px dashed rgba(0,180,216,0.15);
+                pointer-events: none;
+                z-index: 0;
+              " />
+
+              <CanvasBlock
+                v-for="block in visibleBlocks"
+                :key="block.id"
+                :block="block"
+                @contextmenu.stop="(e) => showContextMenu(e, block.id)"
+              />
+            </template>
+
+            <!-- IF SECTIONS MODE -->
+            <template v-else>
+              <!-- 1. Header Section Dropzone -->
+              <div
+                class="editor-section-container header-zone"
+                :class="{
+                  'zone-dragover': activeDragZone === 'header',
+                  'zone-drag-target': canvasStore.draggingToZone === 'header'
+                }"
+                :style="getSectionStyle('header')"
+                @dragover.prevent="onSectionDragOver($event, 'header')"
+                @dragleave="onSectionDragLeave('header')"
+                @drop.prevent="onSectionDrop($event, 'header')"
+              >
+                <div class="zone-label zone-label--header">
+                  <span class="zone-label__icon">▣</span>
+                  <span class="zone-label__text">Header</span>
+                </div>
+                <CanvasBlock
+                  v-for="block in headerBlocks"
+                  :key="block.id"
+                  :block="block"
+                  @contextmenu.stop="(e) => showContextMenu(e, block.id)"
+                />
+              </div>
+
+              <!-- 2. Table Section (accepts drops for table blocks) -->
+              <div
+                class="editor-section-container table-zone"
+                :class="{
+                  'zone-dragover': activeDragZone === 'table',
+                  'zone-drag-target': canvasStore.draggingToZone === 'table'
+                }"
+                :style="getSectionStyle('table')"
+                @dragover.prevent="onSectionDragOver($event, 'table')"
+                @dragleave="onSectionDragLeave('table')"
+                @drop.prevent="onSectionDrop($event, 'table')"
+              >
+                <div class="zone-label zone-label--table">
+                  <span class="zone-label__icon">⊞</span>
+                  <span class="zone-label__text">Table</span>
+                </div>
+                <div v-if="tableBlocks.length === 0" class="zone-placeholder">Drag a Table block here to insert a table</div>
+                <CanvasBlock
+                  v-for="block in tableBlocks"
+                  :key="block.id"
+                  :block="block"
+                  @contextmenu.stop="(e) => showContextMenu(e, block.id)"
+                />
+              </div>
+
+              <!-- 3. Footer Section Dropzone (flows after table) -->
+              <div
+                class="editor-section-container footer-zone"
+                :class="{
+                  'zone-dragover': activeDragZone === 'footer',
+                  'zone-drag-target': canvasStore.draggingToZone === 'footer'
+                }"
+                :style="getSectionStyle('footer')"
+                @dragover.prevent="onSectionDragOver($event, 'footer')"
+                @dragleave="onSectionDragLeave('footer')"
+                @drop.prevent="onSectionDrop($event, 'footer')"
+              >
+                <div class="zone-label zone-label--footer">
+                  <span class="zone-label__icon">▤</span>
+                  <span class="zone-label__text">Footer</span>
+                </div>
+                <div v-if="footerBlocks.length === 0" class="zone-placeholder">Drag totals, notes, bank details, or signature blocks here</div>
+                <CanvasBlock
+                  v-for="block in footerBlocks"
+                  :key="block.id"
+                  :block="block"
+                  @contextmenu.stop="(e) => showContextMenu(e, block.id)"
+                />
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -355,5 +590,121 @@ onUnmounted(() => {
     linear-gradient(rgba(128,128,128,0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(128,128,128,0.08) 1px, transparent 1px);
   background-size: v-bind('canvasStore.gridSize + "px"') v-bind('canvasStore.gridSize + "px"');
+}
+
+.editor-section-container {
+  border: 1.5px dashed rgba(0, 180, 216, 0.18);
+  margin-bottom: 0;
+  background-color: transparent;
+  transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  position: relative;
+  min-height: 40px;
+}
+/* Per-zone left accent border */
+.header-zone {
+  border-left: 3px solid rgba(96, 165, 250, 0.55);
+}
+.table-zone {
+  border-left: 3px solid rgba(251, 191, 36, 0.55);
+  border-style: solid;
+  background-color: rgba(255, 255, 255, 0.012);
+}
+.footer-zone {
+  border-left: 3px solid rgba(52, 211, 153, 0.55);
+}
+
+/* Hover state */
+.editor-section-container:not(.table-zone):hover {
+  background-color: rgba(0, 180, 216, 0.025);
+  border-color: rgba(0, 180, 216, 0.45);
+}
+
+/* Sidebar drop highlight */
+.zone-dragover {
+  background-color: rgba(0, 180, 216, 0.07) !important;
+  border-color: var(--color-accent) !important;
+  box-shadow: inset 0 0 0 1px rgba(0, 180, 216, 0.3);
+}
+
+/* Block-drag cross-section highlight */
+.zone-drag-target {
+  background-color: rgba(52, 211, 153, 0.08) !important;
+  border-left-color: #34d399 !important;
+  border-color: rgba(52, 211, 153, 0.5) !important;
+  box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.25);
+  animation: zone-pulse 0.7s ease-in-out infinite alternate;
+}
+@keyframes zone-pulse {
+  from { background-color: rgba(52, 211, 153, 0.04); }
+  to   { background-color: rgba(52, 211, 153, 0.12); }
+}
+
+/* ── Zone labels ────────────────────────────────────── */
+.zone-label {
+  position: absolute;
+  /* Float to the LEFT of the paper (paper has overflow:visible in sections mode) */
+  right: calc(100% + 10px);
+  top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 4px 9px 4px 7px;
+  border-radius: 5px;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.72;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  backdrop-filter: blur(4px);
+}
+.zone-label__icon {
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.85;
+}
+.zone-label__text {
+  font-size: 9.5px;
+}
+/* Color per zone */
+.zone-label--header {
+  background: rgba(30, 64, 120, 0.92);
+  border: 1px solid rgba(96, 165, 250, 0.6);
+  color: #93c5fd;
+}
+.zone-label--table {
+  background: rgba(92, 60, 15, 0.92);
+  border: 1px solid rgba(251, 191, 36, 0.6);
+  color: #fcd34d;
+}
+.zone-label--footer {
+  background: rgba(6, 60, 45, 0.92);
+  border: 1px solid rgba(52, 211, 153, 0.6);
+  color: #6ee7b7;
+}
+/* Show labels more prominently on hover or drag-target */
+.editor-section-container:hover .zone-label,
+.zone-drag-target .zone-label,
+.zone-dragover .zone-label {
+  opacity: 1;
+  transform: translateX(-2px);
+}
+
+.zone-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.18);
+  font-style: italic;
+  pointer-events: none;
+  border: 1px dashed rgba(255, 255, 255, 0.06);
+  margin: 10px 10px 10px 14px;
+  border-radius: 4px;
 }
 </style>

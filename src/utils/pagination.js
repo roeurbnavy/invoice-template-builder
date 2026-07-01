@@ -1,15 +1,84 @@
-import { getNestedValue, SAMPLE_DATA } from "./variableResolver.js";
+import {
+  getNestedValue,
+  SAMPLE_DATA,
+  resolveBlockBinding,
+  resolveVariables,
+} from "./variableResolver.js";
+
+const estimateBlockHeight = (block, data) => {
+  const height = parseFloat(block.height) || 32;
+  if (
+    ![
+      "text",
+      "field_row",
+      "notes",
+      "bank_details",
+      "carbon_copy_label",
+    ].includes(block.type)
+  ) {
+    return height;
+  }
+
+  // Estimate text content
+  let text = "";
+  let fontSize = parseFloat(block.fontSize) || 13;
+  let lineHeight = block.lineHeight || 1.4;
+  let width = parseFloat(block.width) || 200;
+
+  if (
+    block.type === "text" ||
+    block.type === "notes" ||
+    block.type === "bank_details" ||
+    block.type === "carbon_copy_label"
+  ) {
+    let content = block.content || "";
+    try {
+      content = resolveVariables(content, data, true);
+    } catch (e) {}
+    text = content;
+  } else if (block.type === "field_row") {
+    // For field row, the value container is narrower
+    const labelW = parseFloat(block.labelWidth) || 40;
+    width = width * (1 - labelW / 100) - 10;
+
+    // Resolve value
+    let val = block.value || "";
+    try {
+      const binding = resolveBlockBinding(block, data, true);
+      if (binding !== null) val = String(binding);
+    } catch (e) {}
+    text = val;
+  }
+
+  if (!text) return height;
+
+  // Detect Khmer
+  const isKhmer = /[\u1780-\u17FF]/.test(text);
+  const avgCharWidth = fontSize * (isKhmer ? 0.72 : 0.48);
+  const charsPerLine = Math.max(8, Math.floor(width / avgCharWidth));
+
+  // Split by newlines first
+  const paragraphs = text.split(/\r?\n/);
+  let totalLines = 0;
+  paragraphs.forEach((p) => {
+    totalLines += Math.max(1, Math.ceil(p.length / charsPerLine));
+  });
+
+  const contentH = totalLines * fontSize * lineHeight;
+  const padding = 6; // vertical padding fallback
+  return Math.max(height, contentH + padding);
+};
 
 /**
  * Calculates page layout pagination for multi-page document templates.
  *
  * @param {Array}  blocks         - Original template blocks
- * @param {Object} posData        - Real live transaction data
+ * @param {Object} data        - Real live transaction data
  * @param {Object} format         - Selected format details (height, width, isThermal)
  * @param {Object} settingsStore  - Settings store instance for sampleData access
  * @returns {Array} List of pages, where each page contains its format dimensions and array of adjusted blocks.
  */
-export function paginateTemplate(blocks, posData, format, settingsStore) {
+export function paginateTemplate(blocks, data, format, settingsStore) {
   const pageH = format?.height ?? 1123;
   const isThermal = format?.isThermal === true;
 
@@ -28,7 +97,7 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
 
   // 2. Resolve the items data list
   const bindingField = table.dataBinding?.field || "items";
-  let sourceData = posData || settingsStore?.sampleData;
+  let sourceData = data || settingsStore?.sampleData;
   if (!sourceData || Object.keys(sourceData).length === 0) {
     sourceData = SAMPLE_DATA;
   }
@@ -36,9 +105,10 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
     getNestedValue(sourceData, bindingField) || table.items || [];
   const items = Array.isArray(allItems) ? allItems : [];
 
-  // 3. Compute row heights
-  const headerFontSize = table.headerFontSize ?? table.bodyFontSize ?? 12;
-  const bodyFontSize = table.bodyFontSize ?? 12;
+  const headerFontSize = parseFloat(
+    table.headerFontSize ?? table.bodyFontSize ?? 12,
+  );
+  const bodyFontSize = parseFloat(table.bodyFontSize ?? 12);
   const hTop =
     table.headerPaddingTop ?? table.cellPaddingTop ?? table.cellPadding ?? 6;
   const hBottom =
@@ -52,15 +122,37 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
   );
   const headerRowCount = hasHeaderGroups ? 2 : 1;
 
+  const lineHeightRatio = 1.35;
+  const hasBorders = table.showBorders !== false;
+  const borderH = hasBorders ? 1 : 0;
+
+  const hasCustomPadding =
+    table.cellPaddingTop !== undefined ||
+    table.cellPaddingBottom !== undefined ||
+    table.cellPadding !== undefined;
+
+  const customTop = table.cellPaddingTop ?? table.cellPadding ?? 6;
+  const customBottom = table.cellPaddingBottom ?? table.cellPadding ?? 6;
+  const customVPad = parseFloat(customTop) + parseFloat(customBottom);
+
+  const defaultTop = 2;
+  const defaultBottom = 2;
+  const vPadDefault = defaultTop + defaultBottom;
+
   const headerHeight =
     table.showHeader !== false
-      ? (headerFontSize + hTop + hBottom + 10) * headerRowCount
+      ? Math.round(
+          (headerFontSize * lineHeightRatio + hTop + hBottom + borderH) *
+            headerRowCount,
+        )
       : 0;
 
-  const pTop = table.cellPaddingTop ?? table.cellPadding ?? 5;
-  const pBottom = table.cellPaddingBottom ?? table.cellPadding ?? 5;
-  const rowMinHeight = bodyFontSize + pTop + pBottom + 8;
-  const defaultRowHeight = table.defaultRowHeight ?? 30;
+  const rowMinHeight = Math.round(
+    bodyFontSize * lineHeightRatio +
+      (hasCustomPadding ? customVPad : vPadDefault) +
+      borderH,
+  );
+  const defaultRowHeight = table.defaultRowHeight;
 
   const getEstimatedLines = (col, item) => {
     let lines = 1;
@@ -71,14 +163,22 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
       if (textVal) {
         const tableWidth = parseFloat(table.width) || 600;
         const colPercent = parseFloat(col.width) || 15;
-        // Subtract cell horizontal padding
-        const colWidthPx = tableWidth * (colPercent / 100) - 16;
-        const avgCharWidth = bodyFontSize * 0.52;
-        const charsPerLine = Math.max(
-          10,
-          Math.floor(colWidthPx / avgCharWidth),
-        );
-        lines = Math.max(1, Math.ceil(textVal.length / charsPerLine));
+        const noOrTotal = col.id === "no" || col.id === "total";
+        const hPad = (noOrTotal ? 8 : 4) * 2;
+        const colWidthPx = tableWidth * (colPercent / 100) - hPad;
+
+        // Detect Khmer characters (\u1780-\u17FF)
+        const isKhmer = /[\u1780-\u17FF]/.test(textVal);
+        const avgCharWidth = bodyFontSize * (isKhmer ? 0.72 : 0.55);
+
+        const charsPerLine = Math.max(8, Math.floor(colWidthPx / avgCharWidth));
+        // Split by newlines first
+        const paragraphs = textVal.split(/\r?\n/);
+        let estimatedLines = 0;
+        paragraphs.forEach((p) => {
+          estimatedLines += Math.max(1, Math.ceil(p.length / charsPerLine));
+        });
+        lines = estimatedLines;
       }
     }
 
@@ -97,25 +197,103 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
     if (custom !== undefined && custom !== null)
       return Math.max(custom, rowMinHeight);
 
-    let maxLines = 1;
     const cols = table.columns || [];
+    let maxHeight = 0;
     cols.forEach((col) => {
       if (col.visible !== false) {
+        const textVal = String(item[col.id] || "");
+        const isKhmer = /[\u1780-\u17FF]/.test(textVal);
         const lines = getEstimatedLines(col, item);
-        if (lines > maxLines) {
-          maxLines = lines;
+        const effectiveLineHeightRatio = isKhmer ? 1.5 : lineHeightRatio;
+        const contentHeight = lines * bodyFontSize * effectiveLineHeightRatio;
+
+        // Compute padding to match ItemTableBlockRenderer.vue exactly
+        let vPad;
+        if (hasCustomPadding) {
+          vPad = customVPad;
+        } else {
+          const noOrTotal = col.id === "no" || col.id === "total";
+          vPad = (noOrTotal ? 5 : 2) * 2;
         }
+
+        const cellH = contentHeight + vPad + borderH;
+        if (cellH > maxHeight) maxHeight = cellH;
       }
     });
 
-    const lineHeight = bodyFontSize * 1.35;
-    const contentHeight = maxLines * lineHeight;
-
-    return Math.max(defaultRowHeight, contentHeight + pTop + pBottom);
+    // defaultRowHeight should be a FLOOR (minimum), not a fixed override.
+    // The old formula `Math.max(defaultRowHeight ?? maxHeight, rowMinHeight)`
+    // caused defaultRowHeight=36 to bypass the content estimate (~53px for
+    // 3-line rows), making estimated table height too short and positioning
+    // the summary block inside the actual rendered table.
+    const contentBased =
+      maxHeight > 0 ? Math.max(maxHeight, rowMinHeight) : rowMinHeight;
+    return defaultRowHeight != null
+      ? Math.max(contentBased, defaultRowHeight)
+      : contentBased;
   };
 
-  const tableY = parseFloat(table.y) || 0;
+  const getParentContainer = (blockId) => {
+    return blocks.find(
+      (b) => b.type === "container" && (b.childIds ?? []).includes(blockId),
+    );
+  };
+
+  const layoutMode = settingsStore?.layoutMode || "freeform";
+  const repeatHeader = !!settingsStore?.repeatHeader;
+  const repeatFooter = !!settingsStore?.repeatFooter;
+  const tableY_design = parseFloat(table.y) || 0;
+
+  // Identify Header vs Footer blocks
+  let headerBlocks, footerBlocks, bottomBlocks, flowingBlocks;
+
+  if (layoutMode === "sections") {
+    headerBlocks = blocks.filter(
+      (b) => b.section === "header" && b.id !== table.id,
+    );
+    // 3 sections mode: header / table / footer
+    // footer blocks flow after the table (relative Y from table bottom)
+    footerBlocks = blocks.filter(
+      (b) => b.section === "footer" && b.id !== table.id,
+    );
+    bottomBlocks = []; // no fixed-at-bottom blocks in sections mode
+    flowingBlocks = footerBlocks; // all footer blocks flow after the table
+  } else {
+    headerBlocks = blocks.filter((b) => {
+      if (b.id === table.id) return false;
+      const parent = getParentContainer(b.id);
+      const referenceY = parent ? parseFloat(parent.y) : parseFloat(b.y);
+      return referenceY < tableY_design;
+    });
+    footerBlocks = blocks.filter((b) => {
+      if (b.id === table.id) return false;
+      const parent = getParentContainer(b.id);
+      const referenceY = parent ? parseFloat(parent.y) : parseFloat(b.y);
+      return referenceY >= tableY_design;
+    });
+    const bottomThreshold = pageH - 180;
+    bottomBlocks = footerBlocks.filter(
+      (b) => parseFloat(b.y) >= bottomThreshold,
+    );
+    flowingBlocks = footerBlocks.filter(
+      (b) => parseFloat(b.y) < bottomThreshold,
+    );
+  }
+
+  const docHeaderHeight =
+    headerBlocks.length > 0
+      ? Math.max(
+          120,
+          ...headerBlocks.map(
+            (b) => (parseFloat(b.y) || 0) + estimateBlockHeight(b, sourceData),
+          ),
+        )
+      : 120;
+
+  const tableY = layoutMode === "sections" ? docHeaderHeight : tableY_design;
   const tableHeight = parseFloat(table.height) || 200;
+  table._designY = tableY;
+
   // Build the list of rows with their index and type ('data' | 'empty')
   const rows = [];
   for (let i = 0; i < items.length; i++) {
@@ -129,23 +307,20 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
 
   const maxRowsPerPage = parseInt(table.maxRowsPerPage, 10);
   const hasMaxRows = !isNaN(maxRowsPerPage) && maxRowsPerPage > 0;
-  const singleEmptyRowH = Math.max(defaultRowHeight, rowMinHeight);
+  const singleEmptyRowH =
+    defaultRowHeight != null
+      ? Math.max(defaultRowHeight, rowMinHeight)
+      : rowMinHeight;
+
+  // Total height of ONLY actual data rows (before any empty-row padding).
+  // Used to compute the designed gap between the data content and footer blocks
+  // so InvoiceRenderer can position footers relative to the real rendered height.
+  const designDataRowsHeight = rows.reduce((sum, r) => sum + r.height, 0);
+  const designDataContentEnd =
+    tableY + headerHeight + designDataRowsHeight + borderH;
 
   if (!hasMaxRows) {
-    // Calculate how many empty rows are needed to fill the designed table height (tableHeight)
-    const minRowsHeight = tableHeight - headerHeight - 10;
     let emptyCount = Math.max(0, (table.emptyRows ?? 0) - items.length);
-    const currentTotalRowsHeight =
-      rows.reduce((sum, r) => sum + r.height, 0) + emptyCount * singleEmptyRowH;
-    if (currentTotalRowsHeight < minRowsHeight) {
-      const extraEmptyNeeded = Math.floor(
-        (minRowsHeight - currentTotalRowsHeight) / singleEmptyRowH,
-      );
-      if (extraEmptyNeeded > 0) {
-        emptyCount += extraEmptyNeeded;
-      }
-    }
-
     for (let i = 0; i < emptyCount; i++) {
       rows.push({
         type: "empty",
@@ -155,55 +330,159 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
     }
   }
 
-  const getParentContainer = (blockId) => {
-    return blocks.find(
-      (b) => b.type === "container" && (b.childIds ?? []).includes(blockId),
-    );
+  const formatFooterBlock = (
+    fb,
+    lastPageTableY = 0,
+    lastPageTableHeight = 0,
+  ) => {
+    const copy = JSON.parse(JSON.stringify(fb));
+    copy._isFooter = true;
+    if (layoutMode === "sections") {
+      if (fb.section === "footer") {
+        // All footer blocks flow after the table in sections mode.
+        // Store the relative Y offset so InvoiceRenderer can re-anchor
+        // to the actual measured table bottom (avoids positioning inside
+        // the table when row heights exceed the estimate).
+        const tableBottom = lastPageTableY + lastPageTableHeight;
+        copy._sectionRelY = parseFloat(fb.y) || 0;
+        copy.y = tableBottom + copy._sectionRelY;
+      }
+    } else {
+      copy._originalY = parseFloat(fb.y) || 0;
+      copy._distanceFromBottom = Math.max(
+        0,
+        pageH - (parseFloat(fb.y) || 0) - (parseFloat(fb.height) || 0),
+      );
+    }
+    return copy;
   };
 
-  // Identify Header vs Footer blocks
-  const headerBlocks = blocks.filter((b) => {
-    if (b.id === table.id) return false;
-    const parent = getParentContainer(b.id);
-    const referenceY = parent ? parseFloat(parent.y) : parseFloat(b.y);
-    return referenceY < tableY;
-  });
-  const footerBlocks = blocks.filter((b) => {
-    if (b.id === table.id) return false;
-    const parent = getParentContainer(b.id);
-    const referenceY = parent ? parseFloat(parent.y) : parseFloat(b.y);
-    return referenceY >= tableY;
-  });
-
-  // Compute footer elements bounding box height
+  // Compute flowing footer elements bounding box height
   let footerHeight = 0;
-  if (footerBlocks.length > 0) {
-    const footerMaxY = Math.max(
-      ...footerBlocks.map(
-        (b) => (parseFloat(b.y) || 0) + (parseFloat(b.height) || 0),
-      ),
-    );
-
-    footerHeight = Math.max(0, footerMaxY - (tableY + tableHeight));
+  if (flowingBlocks.length > 0) {
+    if (layoutMode === "sections") {
+      const footerMaxY = Math.max(
+        ...flowingBlocks.map(
+          (b) => (parseFloat(b.y) || 0) + estimateBlockHeight(b, sourceData),
+        ),
+      );
+      footerHeight = footerMaxY + 10;
+    } else {
+      const footerMinY = Math.min(
+        ...flowingBlocks.map((b) => parseFloat(b.y) || 0),
+      );
+      const footerMaxY = Math.max(
+        ...flowingBlocks.map(
+          (b) => (parseFloat(b.y) || 0) + estimateBlockHeight(b, sourceData),
+        ),
+      );
+      footerHeight = footerMaxY - footerMinY + 10;
+    }
   }
 
-  // --- Case A: Thermal Print / Roll Print (Continuous infinite scroll) ---
+  // ── Repeated header/footer helpers ───────────────────────────────────────
+
+  // Actual visual bottom of the last header block (correct for both modes).
+  // In sections mode block.y is relative to section top (starts at 0).
+  // In freeform mode block.y is the absolute paper position.
+  // We do NOT use docHeaderHeight here because it has a 120px minimum that
+  // causes a large gap between repeated header and table on inner pages.
+  const actualHeaderBottom =
+    headerBlocks.length > 0
+      ? Math.max(
+          ...headerBlocks.map(
+            (b) => (parseFloat(b.y) || 0) + (parseFloat(b.height) || 0),
+          ),
+        )
+      : 0;
+
+  const repeatedHeaderH = repeatHeader ? actualHeaderBottom : 0;
+
+  // Freeform footer: the band height is the distance from the top of the
+  // first footer block to the page bottom (NOT the vertical span of blocks).
+  // Sections footer: use footerHeight (the footer section's total visual height).
+  const repeatedFooterH = (() => {
+    if (!repeatFooter) return 0;
+    if (layoutMode === "sections") return footerHeight;
+    // Freeform: reserve from footer-band start to page bottom
+    if (flowingBlocks.length > 0) {
+      const footerMinY = Math.min(
+        ...flowingBlocks.map((b) => parseFloat(b.y) || 0),
+      );
+      return Math.max(0, pageH - footerMinY);
+    }
+    return 0;
+  })();
+
+  /**
+   * Clone header blocks for injection onto page `pageIdx`.
+   * Each clone gets a unique id/_repeatedId so the renderer treats them as
+   * independent elements and doesn't collapse them with the originals.
+   */
+  function cloneRepeatedHeader(pageIdx) {
+    if (!repeatHeader) return [];
+    return headerBlocks.map((b) => {
+      const copy = JSON.parse(JSON.stringify(b));
+      copy.id = `${b.id}_rh_p${pageIdx}`;
+      copy._repeatedId = copy.id;
+      copy._isRepeatedHeader = true;
+      // Keep original x/y — they're relative to the section or paper top
+      return copy;
+    });
+  }
+
+  /**
+   * Clone footer blocks pinned to the correct position on page `pageIdx`.
+   *
+   * Sections mode: blocks are section-relative; pin the footer band to the
+   *   last `footerHeight` px of the page.
+   * Freeform mode: blocks already have absolute page-relative Y — keep them
+   *   unchanged (they naturally sit at the same distance from page bottom).
+   */
+  function cloneRepeatedFooter(pageIdx) {
+    if (!repeatFooter) return [];
+    return footerBlocks.map((b) => {
+      const copy = JSON.parse(JSON.stringify(b));
+      copy.id = `${b.id}_rf_p${pageIdx}`;
+      copy._repeatedId = copy.id;
+      copy._isRepeatedFooter = true;
+      copy._isFooter = true;
+      if (layoutMode === "sections") {
+        copy._sectionRelY = parseFloat(b.y) || 0;
+        copy.y = tableY + tableHeight + copy._sectionRelY;
+      } else {
+        copy.y = parseFloat(b.y) || 0;
+      }
+      return copy;
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   if (isThermal) {
     const totalTableHeight =
-      headerHeight + rows.reduce((sum, r) => sum + r.height, 0) + 10;
-    const deltaHeight = totalTableHeight - tableHeight;
-    const finalPageHeight = Math.max(pageH, pageH + deltaHeight);
+      headerHeight + rows.reduce((sum, r) => sum + r.height, 0) + borderH;
+    const finalPageHeight =
+      layoutMode === "sections"
+        ? tableY + totalTableHeight + footerHeight + 180
+        : Math.max(pageH, pageH + (totalTableHeight - tableHeight));
 
     // Adjust positions
     const adjustedBlocks = blocks.map((b) => {
       const copy = JSON.parse(JSON.stringify(b));
       if (copy.id === table.id) {
         copy.height = totalTableHeight;
+        copy._designHeight = tableHeight;
+        copy._estimatedHeight = totalTableHeight;
+        copy._instanceId = "table_page_0";
       } else {
         const parent = getParentContainer(copy.id);
         const referenceY = parent ? parseFloat(parent.y) : parseFloat(copy.y);
-        if (referenceY >= tableY) {
-          copy.y = (parseFloat(copy.y) || 0) + deltaHeight;
+        if (referenceY >= tableY || copy.section === "footer") {
+          copy._isFooter = true;
+          if (layoutMode === "sections" && copy.section === "footer") {
+            // Footer flows right after the table
+            copy.y = tableY + totalTableHeight + (parseFloat(copy.y) || 0);
+          }
         }
       }
       return copy;
@@ -221,17 +500,43 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
   const pages = [];
   let rowCursor = 0;
 
-  const firstPageMaxSpace = pageH - tableY - headerHeight - 20; // 20px safe margin
-  const middlePageMaxSpace = pageH - 20 - headerHeight - 20; // Starts at y = 20px
+  const bottomMinY =
+    bottomBlocks.length > 0
+      ? Math.min(
+          ...bottomBlocks.map((b) => {
+            if (layoutMode === "sections") {
+              return pageH - 180 + (parseFloat(b.y) || 0);
+            }
+            return parseFloat(b.y) || pageH;
+          }),
+        )
+      : pageH;
+
+  const firstPageMaxSpace =
+    bottomBlocks.length > 0
+      ? bottomMinY - tableY - headerHeight - 15
+      : pageH - tableY - headerHeight - repeatedFooterH - 20;
+
+  // Inner pages: table starts right below repeated header (+ 8px padding).
+  // repeatedHeaderH is now the ACTUAL visual bottom of header blocks (no 120px min).
+  const innerPageTableY = repeatHeader ? tableY : 20;
+
+  // Safety margin is 30px (not 20) to buffer row-height estimation errors
+  // that would otherwise push rows into the reserved footer band.
+  const middlePageMaxSpace =
+    bottomBlocks.length > 0
+      ? bottomMinY - innerPageTableY - headerHeight - repeatedFooterH - 15
+      : pageH - innerPageTableY - headerHeight - repeatedFooterH - 30;
 
   if (hasMaxRows) {
     let pageIdx = 0;
     while (rowCursor < rows.length || (rowCursor === 0 && rows.length === 0)) {
       const isFirstPage = pageIdx === 0;
       const maxSpace = isFirstPage ? firstPageMaxSpace : middlePageMaxSpace;
+      // First page starts with header blocks; inner pages get repeated header clones
       const pageBlocks = isFirstPage
         ? JSON.parse(JSON.stringify(headerBlocks))
-        : [];
+        : cloneRepeatedHeader(pageIdx);
       const pageTable = JSON.parse(JSON.stringify(table));
       const pageRows = [];
       let currentSpace = maxSpace;
@@ -265,25 +570,48 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
       // 3. Determine height & whether footer fits on this page
       const tableRowsHeight = pageRows.reduce((sum, r) => sum + r.height, 0);
 
-      const totalTableHeight = headerHeight + tableRowsHeight + 10;
+      const totalTableHeight = headerHeight + tableRowsHeight + borderH;
 
-      const pageTableY = isFirstPage ? tableY : 20;
+      const pageTableY = isFirstPage ? tableY : innerPageTableY;
 
+      const requiredFooterSpace = repeatFooter ? 0 : footerHeight + 10;
       const footerFits =
-        rowCursor >= rows.length && currentSpace >= footerHeight + 10;
+        rowCursor >= rows.length && currentSpace >= requiredFooterSpace;
 
       if (rowCursor >= rows.length && footerFits) {
-        // Last page with table rows and footer
+        // ── Last page: data rows + footer ────────────────────────────────────
+        // On multi-page last pages (pageIdx > 0), we intentionally skip the
+        // empty-row padding so the table ends right at the last data row and
+        // the footer appears immediately below with the designed gap.
+        const isMultiPageLast = pageIdx > 0;
+        if (!isMultiPageLast) {
+          // Single-page invoice: add empty rows for visual consistency
+          const emptyNeeded = maxRowsPerPage - pageRows.length;
+          for (let i = 0; i < emptyNeeded; i++) {
+            pageRows.push({
+              type: "empty",
+              index: items.length + pageRows.length,
+              height: singleEmptyRowH,
+            });
+          }
+        }
+
+        const tableRowsHeight = pageRows.reduce((sum, r) => sum + r.height, 0);
+        const totalTableHeight = headerHeight + tableRowsHeight + borderH;
+        const hasEmptyRows = pageRows.some((r) => r.type === "empty");
+
         pageTable.y = pageTableY;
         pageTable.height = totalTableHeight;
         pageTable.renderRows = pageRows;
+        pageTable._designHeight = tableHeight;
+        pageTable._estimatedHeight = totalTableHeight;
+        pageTable._instanceId = `table_page_${pageIdx}`;
+        pageTable._hasEmptyRows = hasEmptyRows;
         pageBlocks.push(pageTable);
 
-        const shift = pageTableY - tableY + (totalTableHeight - tableHeight);
+        // Last page: real footer (no pinned repeated footer to avoid duplicate totals)
         footerBlocks.forEach((fb) => {
-          const copy = JSON.parse(JSON.stringify(fb));
-          copy.y = (parseFloat(copy.y) || 0) + shift;
-          pageBlocks.push(copy);
+          pageBlocks.push(formatFooterBlock(fb, pageTableY, totalTableHeight));
         });
 
         pages.push({
@@ -296,7 +624,12 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
         pageTable.y = pageTableY;
         pageTable.height = totalTableHeight;
         pageTable.renderRows = pageRows;
+        pageTable._designHeight = tableHeight;
+        pageTable._estimatedHeight = totalTableHeight;
+        pageTable._instanceId = `table_page_${pageIdx}`;
         pageBlocks.push(pageTable);
+        // Inject repeated footer (pinned to page bottom) on non-last pages
+        cloneRepeatedFooter(pageIdx).forEach((b) => pageBlocks.push(b));
 
         pages.push({
           blocks: pageBlocks,
@@ -304,15 +637,10 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
         });
 
         if (rowCursor >= rows.length) {
-          // Footer didn't fit, place on a new final page
+          // Footer didn't fit on this page — place it on a new final page
           const finalPageBlocks = [];
-          const actualFooterStart = 20;
-          const designFooterStart = tableY + tableHeight;
-          const shift = actualFooterStart - designFooterStart;
           footerBlocks.forEach((fb) => {
-            const copy = JSON.parse(JSON.stringify(fb));
-            copy.y = (parseFloat(copy.y) || 0) + shift;
-            finalPageBlocks.push(copy);
+            finalPageBlocks.push(formatFooterBlock(fb, 20, 0));
           });
 
           pages.push({
@@ -337,31 +665,40 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
 
     // 1. First Page
     const firstPageBlocks = JSON.parse(JSON.stringify(headerBlocks));
+    // On the first page also inject a pinned repeated footer (if enabled)
+    // NOTE: it's pushed AFTER the table below, not here
     const firstPageTable = JSON.parse(JSON.stringify(table));
     const firstPageRows = [];
     let currentSpace = firstPageMaxSpace;
 
-    // Check if all rows + footer fits on page 1
+    // Check if all rows + footer fits on page 1.
+    // If repeatFooter is true, the footer space is already reserved/subtracted
+    // from firstPageMaxSpace, so we don't add it to the required space.
+    const requiredFooterSpace = repeatFooter ? 0 : footerHeight + 10;
     const allFitOnPage1 =
-      getRemainingRowsHeight(0) + footerHeight + 10 <= firstPageMaxSpace;
+      getRemainingRowsHeight(0) + requiredFooterSpace <=
+      firstPageMaxSpace * 0.95;
 
     if (allFitOnPage1) {
       // Everything fits on one page!
       const pageRowsHeight = getRemainingRowsHeight(0);
-      const totalTableHeight = headerHeight + pageRowsHeight + 10;
+      const totalTableHeight = headerHeight + pageRowsHeight + borderH;
 
-      const delta = totalTableHeight - tableHeight;
-
+      firstPageTable.y = tableY;
       firstPageTable.height = totalTableHeight;
       firstPageTable.itemsData = items; // Inject full items
       firstPageTable.renderRows = rows; // Inject all rows
+      firstPageTable._designHeight = tableHeight;
+      firstPageTable._estimatedHeight = totalTableHeight;
+      firstPageTable._instanceId = `table_page_${pages.length}`;
       firstPageBlocks.push(firstPageTable);
 
-      // Add footer blocks shifted down (or up if delta is negative)
+      // Add footer blocks (renderer adjusts based on measured height).
+      // Skip repeated footer on last page to avoid duplicate totals.
+      const allFitHasEmptyRows = rows.some((r) => r.type === "empty");
+      firstPageTable._hasEmptyRows = allFitHasEmptyRows;
       footerBlocks.forEach((fb) => {
-        const copy = JSON.parse(JSON.stringify(fb));
-        copy.y = (parseFloat(copy.y) || 0) + delta;
-        firstPageBlocks.push(copy);
+        firstPageBlocks.push(formatFooterBlock(fb, tableY, totalTableHeight));
       });
 
       pages.push({
@@ -383,11 +720,20 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
       }
     }
 
+    // Inject repeated footer on first page if it couldn't all fit
+    cloneRepeatedFooter(0).forEach((b) => firstPageBlocks.push(b));
+
     // Adjust Page 1 table height to fit its rows
     const page1TableHeight =
-      headerHeight + firstPageRows.reduce((sum, r) => sum + r.height, 0) + 10;
+      headerHeight +
+      firstPageRows.reduce((sum, r) => sum + r.height, 0) +
+      borderH;
+    firstPageTable.y = tableY;
     firstPageTable.height = page1TableHeight;
     firstPageTable.renderRows = firstPageRows;
+    firstPageTable._designHeight = tableHeight;
+    firstPageTable._estimatedHeight = page1TableHeight;
+    firstPageTable._instanceId = `table_page_${pages.length}`;
     firstPageBlocks.push(firstPageTable);
     pages.push({
       blocks: firstPageBlocks,
@@ -396,14 +742,14 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
 
     // 2. Middle & Last Pages
     while (rowCursor < rows.length) {
-      // Check if remaining rows + footer fit on this page (making it the last page)
+      const requiredFooterSpace = repeatFooter ? 0 : footerHeight + 10;
       const fitOnThisPage =
-        getRemainingRowsHeight(rowCursor) + footerHeight + 10 <=
-        middlePageMaxSpace;
+        getRemainingRowsHeight(rowCursor) + requiredFooterSpace <=
+        middlePageMaxSpace * 0.95;
 
       if (fitOnThisPage) {
-        // Last page with table rows and footer
-        const lastPageBlocks = [];
+        // Last page: real footer only (no repeated footer to avoid duplicate totals)
+        const lastPageBlocks = cloneRepeatedHeader(pages.length);
         const lastPageTable = JSON.parse(JSON.stringify(table));
         const lastPageRows = rows.slice(rowCursor);
 
@@ -411,20 +757,24 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
           (sum, r) => sum + r.height,
           0,
         );
-        const totalTableHeight = headerHeight + tableRowsHeight + 10;
+        const totalTableHeight = headerHeight + tableRowsHeight + borderH;
 
-        // Table starts at top margin (20px)
-        lastPageTable.y = 20;
+        // Table starts at inner page top margin
+        lastPageTable.y = innerPageTableY;
         lastPageTable.height = totalTableHeight;
         lastPageTable.renderRows = lastPageRows;
+        lastPageTable._designHeight = tableHeight;
+        lastPageTable._estimatedHeight = totalTableHeight;
+        lastPageTable._instanceId = `table_page_${pages.length}`;
         lastPageBlocks.push(lastPageTable);
 
-        const shift = 20 - tableY + (totalTableHeight - tableHeight);
+        // non-maxRows last page: no empty-row padding, table ends at data rows.
+        lastPageTable._hasEmptyRows = false;
 
         footerBlocks.forEach((fb) => {
-          const copy = JSON.parse(JSON.stringify(fb));
-          copy.y = (parseFloat(copy.y) || 0) + shift;
-          lastPageBlocks.push(copy);
+          lastPageBlocks.push(
+            formatFooterBlock(fb, innerPageTableY, totalTableHeight),
+          );
         });
 
         pages.push({
@@ -435,7 +785,7 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
         break;
       } else {
         // Another middle page
-        const midPageBlocks = [];
+        const midPageBlocks = cloneRepeatedHeader(pages.length);
         const midPageTable = JSON.parse(JSON.stringify(table));
         const midPageRows = [];
         let spaceLeft = middlePageMaxSpace;
@@ -461,12 +811,17 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
           (sum, r) => sum + r.height,
           0,
         );
-        const totalTableHeight = headerHeight + tableRowsHeight + 10;
+        const totalTableHeight = headerHeight + tableRowsHeight + borderH;
 
-        midPageTable.y = 20;
+        midPageTable.y = innerPageTableY;
         midPageTable.height = totalTableHeight;
         midPageTable.renderRows = midPageRows;
+        midPageTable._designHeight = tableHeight;
+        midPageTable._estimatedHeight = totalTableHeight;
+        midPageTable._instanceId = `table_page_${pages.length}`;
         midPageBlocks.push(midPageTable);
+        // Inject repeated footer on middle pages
+        cloneRepeatedFooter(pages.length).forEach((b) => midPageBlocks.push(b));
 
         pages.push({
           blocks: midPageBlocks,
@@ -480,18 +835,12 @@ export function paginateTemplate(blocks, posData, format, settingsStore) {
       rowCursor >= rows.length &&
       pages.length > 0 &&
       !pages[pages.length - 1].blocks.some((b) =>
-        footerBlocks.some((fb) => fb.id === b.id),
+        b._isRepeatedFooter || footerBlocks.some((fb) => fb.id === b.id),
       )
     ) {
       const finalPageBlocks = [];
-      const actualFooterStart = 20; // Starts at top
-      const designFooterStart = tableY + tableHeight;
-      const shift = actualFooterStart - designFooterStart;
-
       footerBlocks.forEach((fb) => {
-        const copy = JSON.parse(JSON.stringify(fb));
-        copy.y = (parseFloat(copy.y) || 0) + shift;
-        finalPageBlocks.push(copy);
+        finalPageBlocks.push(formatFooterBlock(fb, 20, 0));
       });
 
       pages.push({

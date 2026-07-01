@@ -37,7 +37,7 @@
 
     /* Selection & guides */
     --color-selection: #00b4d8;
-    --color-guide: #00b4d8;
+    --color-guide: #ff007f;
     --color-out-of-bounds: #e63946;
 
     /* Font families */
@@ -443,24 +443,63 @@ select.inp option {
 /* ============================================================
    Alignment Guide Lines
    ============================================================ */
+/* ─── Alignment guides ──────────────────────────────────────── */
 .guide-line {
     position: absolute;
     pointer-events: none;
     z-index: 9999;
-    background: var(--color-guide);
-    opacity: 0.8;
+    background: var(--color-guide);   /* pink #ff007f */
+    opacity: 0.9;
 }
-
 .guide-line-h {
-    height: 1px;
+    height: 2px;
     left: 0;
     right: 0;
+    box-shadow: 0 0 4px rgba(255, 0, 127, 0.6);
 }
-
 .guide-line-v {
-    width: 1px;
+    width: 2px;
     top: 0;
     bottom: 0;
+    box-shadow: 0 0 4px rgba(255, 0, 127, 0.6);
+}
+/* Centre guide — blue */
+.guide-line-center {
+    background: #00b4d8;
+    box-shadow: 0 0 5px rgba(0, 180, 216, 0.7);
+}
+/* Intersection dot */
+.guide-dot {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #ffffff;
+    border: 2px solid var(--color-guide);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10000;
+    box-shadow: 0 0 4px rgba(255, 0, 127, 0.8);
+}
+/* Position labels */
+.guide-label {
+    position: absolute;
+    pointer-events: none;
+    z-index: 10001;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 1px 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+    background: rgba(255, 0, 127, 0.85);
+    color: #fff;
+    line-height: 1.6;
+}
+.guide-label-h { left: 4px; }
+.guide-label-v { top: 4px; }
+.guide-label-center,
+.guide-label.guide-label-center {
+    background: rgba(0, 180, 216, 0.9);
 }
 
 /* ============================================================
@@ -921,6 +960,10 @@ select.inp option {
         page-break-after: always !important;
         break-after: page !important;
     }
+    .invoice-renderer-sheet:last-child {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+    }
 
     /* Ensure all blocks and their contents are visible */
     .canvas-block {
@@ -960,6 +1003,10 @@ select.inp option {
         break-after: page !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+    }
+    body.preview-open .preview-paper:last-child {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
     }
     body.preview-open .preview-empty {
         display: none !important;

@@ -1,6 +1,6 @@
 {
   "name": "invoice-builder",
-  "version": "1.0.0",
+  "version": "1.0.0+6",
   "type": "module",
   "main": "./dist/invoice-builder.umd.js",
   "module": "./dist/invoice-builder.es.js",

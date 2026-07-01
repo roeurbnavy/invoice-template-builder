@@ -38,12 +38,13 @@ const blockStyle = computed(() => ({
     :style="{
       ...blockStyle,
       width: '100%',
-      height: '100%',
+      height: 'auto',
+      minHeight: '100%',
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       padding: '2px 4px',
       boxSizing: 'border-box',
-      overflow: 'hidden',
+      overflow: 'visible',
     }"
   >
     <!-- Fill mode: editable inputs -->
@@ -120,11 +121,12 @@ const blockStyle = computed(() => ({
           flexShrink: 0,
           marginRight: '8px',
           width: `${block.labelWidth ?? 40}%`,
+          lineHeight: 'inherit',
         }"
       >
         <span v-html="block.label ?? ''"></span>
       </span>
-      <span style="flex: 1" v-html="displayValue"></span>
+      <span style="flex: 1; white-space: pre-wrap; word-break: break-word; line-height: inherit;" v-html="displayValue"></span>
     </template>
   </div>
 </template>

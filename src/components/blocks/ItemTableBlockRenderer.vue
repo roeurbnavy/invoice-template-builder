@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, nextTick, watch, onMounted, onUnmounted } from "vue";
+import { computed, ref, nextTick, watch, onMounted, onUnmounted, inject } from "vue";
 import { useResizeObserver } from "@vueuse/core";
 import { useBlockStore } from "../../stores/blocks.js";
 import { useHistoryStore } from "../../stores/history.js";
@@ -145,6 +145,7 @@ const headerRow1 = computed(() => {
                     verticalAlign: props.block.headerVAlign ?? 'middle',
                     fontSize: `${props.block.headerFontSize ?? props.block.bodyFontSize ?? 12}px`,
                     padding: headerPaddingStyle.value,
+                    width: col.width ? `${col.width}${col.widthUnit ?? '%'}` : undefined,
                 }
             });
             i++;
@@ -170,6 +171,7 @@ const headerRow2 = computed(() => {
                     verticalAlign: props.block.headerVAlign ?? 'middle',
                     fontSize: `${props.block.headerFontSize ?? props.block.bodyFontSize ?? 12}px`,
                     padding: headerPaddingStyle.value,
+                    width: col.width ? `${col.width}${col.widthUnit ?? '%'}` : undefined,
                 }
             });
         }
@@ -750,17 +752,22 @@ function addRowInline() {
 function commitHistory() { historyStore.push(JSON.parse(JSON.stringify(blockStore.blocks))); }
 
 const rootElement = ref(null);
+const registerTableHeight = inject('registerTableHeight', null);
 
 onMounted(() => {
-    if (!props.block.renderRows) {
-        useResizeObserver(rootElement, (entries) => {
-            const entry = entries[0];
-            const { height } = entry.contentRect;
-            if (height > 0 && Math.round(height) !== props.block.height) {
-                blockStore.updateBlock(props.block.id, { height: Math.round(height) });
+    useResizeObserver(rootElement, (entries) => {
+        const entry = entries[0];
+        const { height } = entry.contentRect;
+        if (height > 0) {
+            const rounded = Math.round(height);
+            if (!props.block.renderRows && rounded !== props.block.height) {
+                blockStore.updateBlock(props.block.id, { height: rounded });
             }
-        });
-    }
+            if (registerTableHeight && props.block._instanceId) {
+                registerTableHeight(props.block._instanceId, rounded);
+            }
+        }
+    });
 });
 
 watch(editingHeaderColId, (newId) => { if (newId) nextTick(() => document.querySelector(`.header-cell-${newId} input`)?.focus()); });
@@ -811,7 +818,8 @@ watch(editingHeaderColId, (newId) => { if (newId) nextTick(() => document.queryS
                         background: block.headerBg ?? '#f5f5f5', color: block.headerColor ?? '#333', fontWeight: block.headerFontWeight ?? 'bold',
                         fontFamily: block.headerFontFamily ?? 'inherit',
                         padding: headerPaddingStyle, textAlign: block.headerHAlign ?? align(col), verticalAlign: block.headerVAlign ?? 'middle',
-                        border: cellBorder(), fontSize: `${block.headerFontSize ?? block.bodyFontSize ?? 12}px`, whiteSpace: 'nowrap'
+                        border: cellBorder(), fontSize: `${block.headerFontSize ?? block.bodyFontSize ?? 12}px`, whiteSpace: 'nowrap',
+                        width: col.width ? `${col.width}${col.widthUnit ?? '%'}` : undefined
                     }" @contextmenu="onColumnHeaderContextMenu(col, $event)" @dblclick="editingHeaderColId = col.id">
                         <input v-if="editingHeaderColId === col.id" :value="col.label" class="inline-cell-input header-edit-input" :style="{ color: block.headerColor ?? '#333', background: 'white', fontWeight: block.headerFontWeight ?? 'bold' }" @input="updateColumnProp(col.id, 'label', $event.target.value)" @blur="editingHeaderColId = null; commitHistory()" @keydown.enter="editingHeaderColId = null; commitHistory()" @keydown.esc="editingHeaderColId = null" />
                         <span v-else>{{ col.label }}</span>

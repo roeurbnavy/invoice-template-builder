@@ -32,6 +32,8 @@ export const useCanvasStore = defineStore("canvas", () => {
   const fillMode = ref(false);
   const showPreview = ref(false);
   const editingBlockId = ref(null);
+  // Zone being hovered during a block-drag (for cross-section visual feedback)
+  const draggingToZone = ref(null);
 
   // Computed
   const paperDimensions = computed(() => {
@@ -122,6 +124,7 @@ export const useCanvasStore = defineStore("canvas", () => {
     fillMode,
     showPreview,
     editingBlockId,
+    draggingToZone,
     paperDimensions,
     currentFormat,
     setFabricCanvas,

@@ -3,9 +3,11 @@ import { computed, ref } from "vue";
 import { useBlockStore } from "../../stores/blocks.js";
 import { useCanvasStore } from "../../stores/canvas.js";
 import { useHistoryStore } from "../../stores/history.js";
+import { useSettingsStore } from "../../stores/settings.js";
 import {
     computeAlignmentGuides,
     clearGuides,
+    applySnap,
 } from "../../composables/useAlignmentGuides.js";
 
 // Block renderers
@@ -116,13 +118,24 @@ const rotating = ref(false);
 const rotatePivot = ref({ cx: 0, cy: 0 });
 const rotateStart = ref({ angle: 0, blockRotation: 0 });
 
+const blockEl = ref(null);
+
 const blockStyle = computed(() => {
     const b = props.block;
     const z = canvasStore.zoom;
+    
+    let yVal = b.y;
+    try {
+        const settingsStore = useSettingsStore();
+        if (settingsStore.layoutMode === 'sections' && b.type === 'item_table') {
+            yVal = 0;
+        }
+    } catch (e) {}
+
     return {
         position: "absolute",
         left: `${b.x * z}px`,
-        top: `${b.y * z}px`,
+        top: `${yVal * z}px`,
         width: `${b.width * z}px`,
         height: `${b.height * z}px`,
         transform: `rotate(${b.rotation ?? 0}deg)`,
@@ -204,7 +217,54 @@ function onMouseDown(e) {
         const newX = Math.round(moveStart.value.blockX + dx);
         const newY = Math.round(moveStart.value.blockY + dy);
         const moveTarget = getParentContainer() ?? props.block;
-        blockStore.updateBlock(moveTarget.id, { x: newX, y: newY });
+        
+        const settingsStore = useSettingsStore();
+        const isSections = settingsStore.layoutMode === 'sections';
+
+        if (isSections && moveTarget.type !== 'item_table') {
+            // Temporarily hide this block so elementFromPoint finds the zone underneath
+            let originalPointerEvents = '';
+            if (blockEl.value) {
+                originalPointerEvents = blockEl.value.style.pointerEvents;
+                blockEl.value.style.pointerEvents = 'none';
+            }
+
+            const elUnderMouse = document.elementFromPoint(me.clientX, me.clientY);
+            const hoveredSectionEl = elUnderMouse?.closest('.editor-section-container');
+
+            if (blockEl.value) {
+                blockEl.value.style.pointerEvents = originalPointerEvents;
+            }
+
+            // Detect which zone we're hovering
+            let newZone = null;
+            if (hoveredSectionEl) {
+                if (hoveredSectionEl.classList.contains('header-zone')) newZone = 'header';
+                else if (hoveredSectionEl.classList.contains('footer-zone')) newZone = 'footer';
+            }
+
+            // Update live zone feedback in canvas store
+            canvasStore.draggingToZone = newZone && newZone !== moveTarget.section ? newZone : null;
+
+            if (newZone && newZone !== moveTarget.section) {
+                // Cross-section move: recalculate Y relative to the new zone
+                const hoverRect = hoveredSectionEl.getBoundingClientRect();
+                const clickYInsideHover = (me.clientY - hoverRect.top) / z;
+                // Place block at drop position minus half block height for centering feel
+                const blockH = moveTarget.height || 30;
+                const calculatedY = Math.max(0, Math.round(clickYInsideHover - blockH / 2));
+
+                blockStore.updateBlock(moveTarget.id, { section: newZone, x: newX, y: calculatedY });
+                moveStart.value.blockX = newX;
+                moveStart.value.blockY = calculatedY;
+                moveStart.value.mouseX = me.clientX;
+                moveStart.value.mouseY = me.clientY;
+            } else {
+                blockStore.updateBlock(moveTarget.id, { x: newX, y: newY });
+            }
+        } else {
+            blockStore.updateBlock(moveTarget.id, { x: newX, y: newY });
+        }
         // Also move other selected blocks
         if (isMultiSelected.value) {
             blockStore.selectedIds.forEach((id) => {
@@ -233,20 +293,21 @@ function onMouseDown(e) {
                 });
             });
         }
-        // Alignment guides
-        const updated = blockStore.blocks.find(
-            (bl) => bl.id === moveTarget.id,
-        );
-        if (updated)
-            computeAlignmentGuides(
-                updated,
-                blockStore.blocks,
-                canvasStore.zoom,
-            );
+        // Alignment guides + snap
+        const updated = blockStore.blocks.find((bl) => bl.id === moveTarget.id);
+        if (updated) {
+            computeAlignmentGuides(updated, blockStore.blocks, canvasStore.zoom);
+            // Snap to nearest active guide (zoom-aware 8px threshold)
+            const snapped = applySnap(updated.x, updated.y, updated, canvasStore.zoom);
+            if (snapped.x !== updated.x || snapped.y !== updated.y) {
+                blockStore.updateBlock(moveTarget.id, { x: snapped.x, y: snapped.y });
+            }
+        }
     };
 
     const onUp = () => {
         moving.value = false;
+        canvasStore.draggingToZone = null;
         clearGuides();
         historyStore.push(JSON.parse(JSON.stringify(blockStore.blocks)));
         window.removeEventListener("mousemove", onMove);
@@ -566,6 +627,7 @@ const handleStyle = (handle) => {
 
 <template>
     <div
+        ref="blockEl"
         :style="blockStyle"
         :class="[
             'canvas-block',

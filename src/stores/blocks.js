@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import { getBlockDefaults } from '../utils/blockDefaults.js'
 import { DOCUMENT_PRESETS } from '../constants/presets.js'
 import { useHistoryStore } from './history.js'
+import { useSettingsStore } from './settings.js'
+import { notify } from '../composables/useNotification.js'
 
 export const useBlockStore = defineStore('blocks', () => {
   const historyStore = useHistoryStore()
@@ -26,8 +28,25 @@ export const useBlockStore = defineStore('blocks', () => {
 
   // Actions
   function addBlock(block) {
+    // ── Phase-1 multi-table guard ─────────────────────────────────────────
+    // Sections mode only supports one item_table (see analysis_alignment_multitable.md).
+    // Freeform mode allows multiple tables (freeform pagination is unrestricted,
+    // though only the FIRST table is paginated — Phase 2 will lift that limit).
+    const settingsStore = useSettingsStore()
+    if (block.type === 'item_table' && settingsStore.layoutMode === 'sections') {
+      const existing = blocks.value.find(b => b.type === 'item_table')
+      if (existing) {
+        notify(
+          'Sections mode supports only one Table block. Switch to Freeform mode to use multiple tables.',
+          'warning',
+        )
+        return false
+      }
+    }
     const zIndex = blocks.value.length
-    blocks.value.push({ ...block, zIndex })
+    const section = block.section || 'header'
+    blocks.value.push({ ...block, section, zIndex })
+    return true
   }
 
   function removeBlock(id) {
@@ -173,6 +192,7 @@ export const useBlockStore = defineStore('blocks', () => {
       borderWidth: 1, borderColor: '#00b4d8', borderStyle: 'dashed',
       zIndex: Math.max(...selected.map(b => b.zIndex ?? 0)) + 1,
       childIds,
+      section: selected[0]?.section || 'header'
     })
     blocks.value.push(container)
     selectBlock(container.id)
@@ -186,6 +206,110 @@ export const useBlockStore = defineStore('blocks', () => {
     removeBlock(container.id)
   }
 
+  function alignSelected(direction) {
+    if (selectedIds.value.length < 2) return
+    const selected = blocks.value.filter(b => selectedIds.value.includes(b.id) && !b.locked)
+    if (selected.length < 2) return
+
+    historyStore.push(JSON.parse(JSON.stringify(blocks.value)))
+
+    const lefts = selected.map(b => b.x ?? 0)
+    const rights = selected.map(b => (b.x ?? 0) + (b.width ?? 0))
+    const tops = selected.map(b => b.y ?? 0)
+    const bottoms = selected.map(b => (b.y ?? 0) + (b.height ?? 0))
+
+    const minX = Math.min(...lefts)
+    const maxX = Math.max(...rights)
+    const minY = Math.min(...tops)
+    const maxY = Math.max(...bottoms)
+
+    selected.forEach(b => {
+      const idx = blocks.value.findIndex(bl => bl.id === b.id)
+      if (idx === -1) return
+      
+      const block = { ...blocks.value[idx] }
+
+      switch (direction) {
+        case 'left':
+          block.x = minX
+          break
+        case 'center':
+          block.x = Math.round(minX + (maxX - minX) / 2 - (b.width ?? 0) / 2)
+          break
+        case 'right':
+          block.x = maxX - (b.width ?? 0)
+          break
+        case 'top':
+          // For sections mode, make sure we don't accidentally move it out of its section
+          block.y = minY
+          break
+        case 'middle':
+          block.y = Math.round(minY + (maxY - minY) / 2 - (b.height ?? 0) / 2)
+          break
+        case 'bottom':
+          block.y = maxY - (b.height ?? 0)
+          break
+      }
+      blocks.value[idx] = block
+    })
+  }
+
+  function distributeSelected(axis) {
+    if (selectedIds.value.length < 3) return
+    const selected = blocks.value.filter(b => selectedIds.value.includes(b.id) && !b.locked)
+    if (selected.length < 3) return
+
+    historyStore.push(JSON.parse(JSON.stringify(blocks.value)))
+
+    if (axis === 'horizontal') {
+      const sorted = [...selected].sort((a, b) => (a.x ?? 0) - (b.x ?? 0))
+      const first = sorted[0]
+      const last = sorted[sorted.length - 1]
+      
+      const totalWidths = sorted.reduce((sum, b) => sum + (b.width ?? 0), 0)
+      const firstLeft = first.x ?? 0
+      const lastRight = (last.x ?? 0) + (last.width ?? 0)
+      
+      const totalDist = lastRight - firstLeft
+      const availableSpace = totalDist - totalWidths
+      const gap = availableSpace / (sorted.length - 1)
+      
+      let currentX = firstLeft
+      sorted.forEach((b) => {
+        const idx = blocks.value.findIndex(bl => bl.id === b.id)
+        if (idx !== -1) {
+          const block = { ...blocks.value[idx] }
+          block.x = Math.round(currentX)
+          blocks.value[idx] = block
+        }
+        currentX += (b.width ?? 0) + gap
+      })
+    } else if (axis === 'vertical') {
+      const sorted = [...selected].sort((a, b) => (a.y ?? 0) - (b.y ?? 0))
+      const first = sorted[0]
+      const last = sorted[sorted.length - 1]
+      
+      const totalHeights = sorted.reduce((sum, b) => sum + (b.height ?? 0), 0)
+      const firstTop = first.y ?? 0
+      const lastBottom = (last.y ?? 0) + (last.height ?? 0)
+      
+      const totalDist = lastBottom - firstTop
+      const availableSpace = totalDist - totalHeights
+      const gap = availableSpace / (sorted.length - 1)
+      
+      let currentY = firstTop
+      sorted.forEach((b) => {
+        const idx = blocks.value.findIndex(bl => bl.id === b.id)
+        if (idx !== -1) {
+          const block = { ...blocks.value[idx] }
+          block.y = Math.round(currentY)
+          blocks.value[idx] = block
+        }
+        currentY += (b.height ?? 0) + gap
+      })
+    }
+  }
+
   const documentPresets = ref(DOCUMENT_PRESETS)
 
   function clearAll() {
@@ -194,8 +318,53 @@ export const useBlockStore = defineStore('blocks', () => {
   }
 
   function setBlocks(newBlocks) {
-    blocks.value = newBlocks
-    selectedIds.value = []
+    let settingsStore = null;
+    try {
+      settingsStore = useSettingsStore();
+    } catch(e) {}
+    const layoutMode = settingsStore?.layoutMode || 'freeform';
+
+    const tableBlock = newBlocks.find(b => b.type === 'item_table')
+    const pageH = 1123;
+    const tableBottom = tableBlock ? tableBlock.y + tableBlock.height : 532;
+
+    const migrated = newBlocks.map(block => {
+      // --- Transparent migration: legacy 'summary' → 'footer' ---
+      // Old schemas stored totals/notes as section:'summary'. The section no
+      // longer exists; footer now covers that role (flows after the table).
+      if (block.section === 'summary') {
+        return { ...block, section: 'footer' };
+      }
+
+      if (block.section) return block;
+      if (layoutMode === 'sections') {
+        if (block.type === 'item_table') {
+          return { ...block, section: 'table' };
+        }
+        if (tableBlock) {
+          if (block.y < tableBlock.y) {
+            return { ...block, section: 'header' };
+          } else {
+            // Everything after the table = footer (Y relative to table bottom)
+            return { ...block, section: 'footer', y: block.y - tableBottom };
+          }
+        }
+      } else {
+        // freeform
+        if (block.type === 'item_table') {
+          return { ...block, section: 'table' };
+        }
+        if (tableBlock) {
+          return {
+            ...block,
+            section: block.y < tableBlock.y ? 'header' : 'footer',
+          };
+        }
+      }
+      return { ...block, section: 'header' };
+    });
+    blocks.value = migrated;
+    selectedIds.value = [];
   }
 
   function setDocumentPresets(presets) {
@@ -250,6 +419,8 @@ export const useBlockStore = defineStore('blocks', () => {
     loadPreset,
     groupSelected,
     ungroupSelected,
+    alignSelected,
+    distributeSelected,
     documentPresets,
     setDocumentPresets,
   }

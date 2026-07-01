@@ -48,6 +48,15 @@ import {
     ChevronDown,
     ChevronsUp,
     ChevronsDown,
+    AlignLeft,
+    AlignCenter,
+    AlignRight,
+    AlignStartVertical,
+    AlignCenterVertical,
+    AlignEndVertical,
+    FolderPlus,
+    ChevronsLeftRight,
+    ChevronsUpDown,
 } from "@lucide/vue";
 
 // Import Tab Components
@@ -68,6 +77,17 @@ const settingsStore = useSettingsStore();
 const block = computed(() => blockStore.selectedBlock);
 const isSelected = computed(() => !!block.value);
 const isFillMode = computed(() => canvasStore.fillMode);
+const hasMultiSelection = computed(() => blockStore.selectedIds.length > 1);
+
+function handleGroup() {
+    blockStore.groupSelected();
+    historyStore.push(JSON.parse(JSON.stringify(blockStore.blocks)));
+}
+
+function handleDeleteSelected() {
+    blockStore.removeSelected();
+    historyStore.push(JSON.parse(JSON.stringify(blockStore.blocks)));
+}
 
 // Tabs configuration
 const tabs = [
@@ -257,8 +277,128 @@ const formatBlockName = (type) => {
             ✏ FILL MODE — Click any block to type
         </div>
 
+        <!-- Multiple Selection Panel -->
+        <div v-if="hasMultiSelection" class="global-settings-panel" style="flex: 1; padding: 16px; overflow-y: auto;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--color-panel-border); padding-bottom: 12px;">
+                <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--color-panel-text);">Selection ({{ blockStore.selectedIds.length }})</h3>
+            </div>
+
+            <!-- Alignment Tools Group -->
+            <div class="field-group" style="margin-bottom: 24px;">
+                <div class="field-label" style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-panel-muted); margin-bottom: 12px;">Align Elements</div>
+                
+                <!-- Horizontal Align Row -->
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                    <button
+                        class="btn btn-ghost"
+                        style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; font-size: 10px;"
+                        @click="blockStore.alignSelected('left')"
+                    >
+                        <AlignLeft :size="15" />
+                        <span>Left</span>
+                    </button>
+                    <button
+                        class="btn btn-ghost"
+                        style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; font-size: 10px;"
+                        @click="blockStore.alignSelected('center')"
+                    >
+                        <AlignCenter :size="15" />
+                        <span>Center</span>
+                    </button>
+                    <button
+                        class="btn btn-ghost"
+                        style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; font-size: 10px;"
+                        @click="blockStore.alignSelected('right')"
+                    >
+                        <AlignRight :size="15" />
+                        <span>Right</span>
+                    </button>
+                </div>
+
+                <!-- Vertical Align Row -->
+                <div style="display: flex; gap: 8px;">
+                    <button
+                        class="btn btn-ghost"
+                        style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; font-size: 10px;"
+                        @click="blockStore.alignSelected('top')"
+                    >
+                        <AlignStartVertical :size="15" />
+                        <span>Top</span>
+                    </button>
+                    <button
+                        class="btn btn-ghost"
+                        style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; font-size: 10px;"
+                        @click="blockStore.alignSelected('middle')"
+                    >
+                        <AlignCenterVertical :size="15" />
+                        <span>Middle</span>
+                    </button>
+                    <button
+                        class="btn btn-ghost"
+                        style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; font-size: 10px;"
+                        @click="blockStore.alignSelected('bottom')"
+                    >
+                        <AlignEndVertical :size="15" />
+                        <span>Bottom</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Distribute Spacing Group -->
+            <div class="field-group" style="margin-bottom: 24px; border-top: 1px solid var(--color-panel-border); padding-top: 16px;">
+                <div class="field-label" style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-panel-muted); margin-bottom: 12px;">Distribute Spacing</div>
+                
+                <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+                    <button
+                        class="btn btn-ghost"
+                        style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; font-size: 10px;"
+                        :disabled="blockStore.selectedIds.length < 3"
+                        @click="blockStore.distributeSelected('horizontal')"
+                    >
+                        <ChevronsLeftRight :size="15" />
+                        <span>Horizontal</span>
+                    </button>
+                    <button
+                        class="btn btn-ghost"
+                        style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; font-size: 10px;"
+                        :disabled="blockStore.selectedIds.length < 3"
+                        @click="blockStore.distributeSelected('vertical')"
+                    >
+                        <ChevronsUpDown :size="15" />
+                        <span>Vertical</span>
+                    </button>
+                </div>
+                <div v-if="blockStore.selectedIds.length < 3" style="font-size: 9.5px; color: var(--color-panel-muted); font-style: italic; text-align: center; margin-top: 4px;">
+                    Select 3 or more blocks to distribute spacing
+                </div>
+            </div>
+
+            <!-- Group Actions Group -->
+            <div class="field-group" style="margin-bottom: 24px; border-top: 1px solid var(--color-panel-border); padding-top: 16px;">
+                <div class="field-label" style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-panel-muted); margin-bottom: 12px;">Bulk Actions</div>
+                
+                <button
+                    class="btn btn-primary"
+                    style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px; padding: 10px; font-size: 11px;"
+                    @click="handleGroup"
+                >
+                    <FolderPlus :size="14" />
+                    <span>Group Selected</span>
+                </button>
+
+                <button
+                    class="btn btn-ghost text-danger"
+                    style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 11px; border: 1px solid rgba(220, 53, 69, 0.25);"
+                    @click="handleDeleteSelected"
+                >
+                    <Trash2 :size="14" />
+                    <span>Delete Selection</span>
+                </button>
+            </div>
+        </div>
+
         <!-- Document Settings (when no block is selected) -->
-        <div v-if="!isSelected" class="global-settings-panel" style="flex: 1; padding: 16px; overflow-y: auto;">
+        <div v-else-if="!isSelected" class="global-settings-panel" style="flex: 1; padding: 16px; overflow-y: auto;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--color-panel-border); padding-bottom: 12px;">
                 <Settings :size="18" class="text-panel-muted" />
                 <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--color-panel-text);">Document Settings</h3>
@@ -295,6 +435,63 @@ const formatBlockName = (type) => {
                             @input="settingsStore.setGlobalFontSize(parseInt($event.target.value) || 12)"
                         />
                         <span class="field-unit-label">px</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Canvas Layout Settings -->
+            <div class="field-group" style="margin-bottom: 20px;">
+                <div class="field-label" style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-panel-muted); margin-bottom: 8px;">Canvas Layout</div>
+                <div class="field-single">
+                    <label style="font-size: 10px; color: var(--color-panel-muted); display: block; margin-bottom: 4px;">Layout Mode</label>
+                    <select
+                        :value="settingsStore.layoutMode"
+                        class="inp"
+                        @change="settingsStore.setLayoutMode($event.target.value)"
+                    >
+                        <option value="freeform">Freeform (Absolute)</option>
+                        <option value="sections">Section Flow (Header/Summary/Footer)</option>
+                    </select>
+                    <div style="font-size: 10.5px; color: var(--color-panel-muted); margin-top: 8px; line-height: 1.45;">
+                        ℹ️ <b>ប្លង់លំហូរតាមផ្នែក (Section Flow)៖</b> កម្ពស់ផ្នែកនីមួយៗនឹងលូតវែង ឬបង្រួមដោយស្វ័យប្រវត្តិតាមទីតាំងប្លុក។ បងអាចទាញប្លុកចុះក្រោម ដើម្បីពង្រីកកម្ពស់ផ្នែកនោះបាន។
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page Repeat Settings -->
+            <div class="field-group" style="margin-bottom: 20px;">
+                <div class="field-label" style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--color-panel-muted); margin-bottom: 8px;">📄 Page Repeat</div>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <span style="font-weight: 500; display: block; font-size: 12px;">Repeat Header</span>
+                            <span style="font-size: 10.5px; color: var(--color-panel-muted); line-height: 1.4;">Show header blocks on every page</span>
+                        </div>
+                        <label class="toggle">
+                            <input
+                                type="checkbox"
+                                :checked="settingsStore.repeatHeader"
+                                @change="settingsStore.setRepeatHeader($event.target.checked)"
+                            />
+                            <span class="toggle-track" />
+                        </label>
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <span style="font-weight: 500; display: block; font-size: 12px;">Repeat Footer</span>
+                            <span style="font-size: 10.5px; color: var(--color-panel-muted); line-height: 1.4;">Pin footer blocks on every page</span>
+                        </div>
+                        <label class="toggle">
+                            <input
+                                type="checkbox"
+                                :checked="settingsStore.repeatFooter"
+                                @change="settingsStore.setRepeatFooter($event.target.checked)"
+                            />
+                            <span class="toggle-track" />
+                        </label>
+                    </div>
+                    <div v-if="settingsStore.repeatHeader || settingsStore.repeatFooter" style="font-size: 10px; color: var(--color-panel-muted); background: rgba(0,180,216,0.07); border-radius: 6px; padding: 7px 9px; line-height: 1.5; margin-top: 2px;">
+                        ℹ️ Repeated blocks appear in Preview and Print. Table rows will automatically shrink to fit above/below the repeated sections.
                     </div>
                 </div>
             </div>

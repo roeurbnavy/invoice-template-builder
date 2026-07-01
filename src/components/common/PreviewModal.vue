@@ -15,7 +15,7 @@ let previewModeBackup = false;
 const printCopies = ref(1);
 
 function getBlocksForCopy(copyIdx) {
-  return blockStore.orderedBlocks.map(block => {
+  return blockStore.orderedBlocks.map((block) => {
     if (block.type === "carbon_copy_label") {
       const modified = { ...block };
       if (copyIdx === 1) {
@@ -35,6 +35,7 @@ watch(
   () => canvasStore.showPreview,
   async (val) => {
     if (val) {
+      // settingsStore.setSampleData({ items: fakeData });
       previewModeBackup = canvasStore.previewMode;
       canvasStore.previewMode = true;
       document.body.classList.add("preview-open");
@@ -105,7 +106,7 @@ onUnmounted(() => {
       <div class="preview-body">
         <div
           class="preview-scroll"
-          style="display: flex; flex-direction: column;"
+          style="display: flex; flex-direction: column"
         >
           <template v-if="blockStore.orderedBlocks.length > 0">
             <InvoiceRenderer
@@ -116,6 +117,9 @@ onUnmounted(() => {
               :orientation="canvasStore.orientation"
               :global-font="settingsStore.globalFont || 'Noto Sans, sans-serif'"
               :global-font-size="settingsStore.globalFontSize || 13"
+              :layout-mode="settingsStore.layoutMode"
+              :repeat-header="settingsStore.repeatHeader"
+              :repeat-footer="settingsStore.repeatFooter"
             />
           </template>
           <div v-else class="preview-empty">
